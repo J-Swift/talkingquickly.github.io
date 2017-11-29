@@ -8,7 +8,15 @@
     <title>talkingquickly</title>
     <link>http://www.talkingquickly.co.uk</link>
     <description>rails, docker, stress free deployment and small steps taken quickly</description>
-    <pubDate>Fri, 06 May 2016 09:00:00 +0100</pubDate>
+    <pubDate>Tue, 28 Nov 2017 08:00:00 +0000</pubDate>
+    <item>
+      <title>Startup Reading List (2018 Edition)</title>
+      <link>http://www.talkingquickly.co.uk/2017/11/startup-reading-list</link>
+      <description>&lt;p&gt;Something most of the startup and product people I look up to have in common is that they read, a lot. They also challenge what they read. Rather than reading a chapter, then immediately trying to implement what they&amp;#39;ve read, their books are full of post-it notes and scribbles, dinners and emails are full of debates on one methodology or idea v another.&lt;/p&gt;
+</description>
+      <pubDate>Tue, 28 Nov 2017 08:00:00 +0000</pubDate>
+      <dc:date>2017-11-28T08:00:00+00:00</dc:date>
+    </item>
     <item>
       <title>2015 In Review</title>
       <link>http://www.talkingquickly.co.uk/2016/05/2015-in-review</link>
@@ -174,6 +182,6 @@ debug problems.&lt;/p&gt;
       <pubDate>Wed, 02 Jan 2013 12:00:00 +0000</pubDate>
       <dc:date>2013-01-02T12:00:00+00:00</dc:date>
     </item>
-    <dc:date>2016-05-06T09:00:00+01:00</dc:date>
+    <dc:date>2017-11-28T08:00:00+00:00</dc:date>
   </channel>
 </rss>
