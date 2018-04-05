@@ -3,7 +3,7 @@
 <generator uri="http://jekyllrb.com" version="3.7.2">Jekyll</generator>
 <link href="https://www.talkingquickly.co.uk/rss.xml" rel="self" type="application/atom+xml" />
 <link href="https://www.talkingquickly.co.uk/" rel="alternate" type="text/html" />
-<updated>2018-03-24T00:04:14+00:00</updated>
+<updated>2018-04-05T21:02:39+00:00</updated>
 <id>https://www.talkingquickly.co.uk/</id>
 <title>talkingquickly</title>
 <subtitle>rails, docker, stress free deployment and small steps taken quickly</subtitle>
@@ -12,11 +12,11 @@
 </author>
 <entry>
 <title>A Rails development environment with Docker</title>
-<link href="https://www.talkingquickly.co.uk/2018/03/rails-development-environment-with-docker-compose" rel="alternate" type="text/html" title="A Rails development environment with Docker" />
+<link href="https://www.talkingquickly.co.uk/2018/03/rails-development-environment-with-docker-compose/" rel="alternate" type="text/html" title="A Rails development environment with Docker" />
 <published>2018-03-04T14:18:00+00:00</published>
 <updated>2018-03-04T14:18:00+00:00</updated>
 <id>https://www.talkingquickly.co.uk/2018/03/rails-development-environment-with-docker-compose</id>
-<content type="html" xml:base="https://www.talkingquickly.co.uk/2018/03/rails-development-environment-with-docker-compose">&lt;p&gt;Docker and Docker Compose makes it a single command to bring up a development environment on any system which supports Docker. This removes the need to invest time setting up local development environments. For me this means the time to a working development environment, even on a fresh machine for a project I haven&amp;#39;t worked on for months or years, is just a few seconds.&lt;/p&gt;
+<content type="html" xml:base="https://www.talkingquickly.co.uk/2018/03/rails-development-environment-with-docker-compose/">&lt;p&gt;Docker and Docker Compose reduces bringing up a development environment on any system which supports Docker to a single command. For me this means the time to a working development environment, even on a fresh machine for a project I haven&amp;#39;t worked on for months or years, is just a few seconds.&lt;/p&gt;
 
 &lt;!--more--&gt;
 
@@ -26,11 +26,11 @@
 
 &lt;p&gt;We&amp;#39;ll need to have Docker installed locally &lt;a href=&quot;https://docs.docker.com/install/&quot;&gt;https://docs.docker.com/install/&lt;/a&gt;. We&amp;#39;ll also need &lt;code&gt;docker-compose&lt;/code&gt; installed, for OSX then this is included when installing Docker, for Linux, it must be installed separately and instructions are here; &lt;a href=&quot;https://docs.docker.com/compose/install/#install-compose&quot;&gt;https://docs.docker.com/compose/install/#install-compose&lt;/a&gt;.&lt;/p&gt;
 
-&lt;h2&gt;Adding files&lt;/h2&gt;
+&lt;h2&gt;Dockerising a Rails Application&lt;/h2&gt;
 
 &lt;p&gt;For an existing Rails application the files below should be added to the root of the project. If generating a new project we should create an empty directory with the name matching the desired name of the Rails project and create the files here. We&amp;#39;ll cover generating the Rails application itself using Docker below.&lt;/p&gt;
 
-&lt;p&gt;First we add a file called &lt;code&gt;Dockerfile&lt;/code&gt; which defines how to build the runtime environment for our application:&lt;/p&gt;
+&lt;p&gt;First we add a file called &lt;code&gt;Dockerfile&lt;/code&gt; to the project root which defines how to build the runtime environment for our application:&lt;/p&gt;
 &lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;FROM ruby:2.4.2
 MAINTAINER YOUR_EMAIL
 
@@ -57,10 +57,12 @@ RUN gem install bundler &amp;amp;&amp;amp; bundle install --jobs 20 --retry 5
 
 COPY . /app
 RUN rm -rf tmp/*
+
+ADD . /app
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;Replacing &lt;code&gt;YOUR_EMAIL&lt;/code&gt; with your email address.&lt;/p&gt;
 
-&lt;p&gt;Then we add a second file called &lt;code&gt;docker-compose.yml&lt;/code&gt; containing the following:&lt;/p&gt;
+&lt;p&gt;Then we add a second file called &lt;code&gt;docker-compose.yml&lt;/code&gt; to the project root containing the following:&lt;/p&gt;
 &lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;version: &amp;quot;3&amp;quot;
 services:
   app:
@@ -100,38 +102,34 @@ volumes:
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;h2&gt;The compose file&lt;/h2&gt;
 
-&lt;p&gt;As mentioned at the start, this tutorial isn&amp;#39;t an in depth introduction to Docker or Compose, but a few elements of this compose file are worth noting as they differ from the many other Rails compose files out there:&lt;/p&gt;
+&lt;p&gt;A few elements of this compose file are worth noting as they differ from the many other Rails compose files out there:&lt;/p&gt;
 
 &lt;ul&gt;
 &lt;li&gt;We don&amp;#39;t use &lt;code&gt;links&lt;/code&gt;, these are &lt;a href=&quot;https://docs.docker.com/compose/compose-file/#links&quot;&gt;no longer the recommended approach&lt;/a&gt; for establishing communication between containers. Instead services are available by hostname where the hostname will be the name of the service. E.g. in this case our &lt;code&gt;app&lt;/code&gt; conainer can access postgres via the hostname &lt;code&gt;postgres&lt;/code&gt; and redis via the hostname &lt;code&gt;redis&lt;/code&gt;&lt;/li&gt;
-&lt;li&gt;The &lt;code&gt;:delegated&lt;/code&gt; option on the volume mount for our app directory. This is specific to Docker for Mac, although won&amp;#39;t cause problems on other platforms. Details of what this does are &lt;a href=&quot;https://docs.docker.com/compose/compose-file/#caching-options-for-volume-mounts-docker-for-mac&quot;&gt;available here&lt;/a&gt; but it provides a substantial improvement in filesystem performance on OSX, without which day to day development of Rails applications can be painful.&lt;/li&gt;
+&lt;li&gt;The &lt;code&gt;:delegated&lt;/code&gt; option on the volume mount for our app directory. This is specific to Docker for Mac, although won&amp;#39;t cause problems on other platforms. Details of what this does are &lt;a href=&quot;https://docs.docker.com/compose/compose-file/#caching-options-for-volume-mounts-docker-for-mac&quot;&gt;available here&lt;/a&gt; but it provides a substantial improvement in filesystem performance on OSX, without which day to day development of Rails applications can be painful. If file performance is still not sufficient for your application, it&amp;#39;s worth considering &lt;a href=&quot;http://docker-sync.io/&quot;&gt;Docker Sync&lt;/a&gt; although the 60x slowdown references on that site is substantially reduced by the sue of &lt;code&gt;delegated&lt;/code&gt; on OSX&lt;/li&gt;
 &lt;/ul&gt;
 
 &lt;h2&gt;Generating a new application&lt;/h2&gt;
 
 &lt;p&gt;When working with an existing Rails application, we can skip this section. Using Docker to generate the entire application is especially useful when trying to maintain no local development environment at all, so we can develop Rails applications without ever needing a local Ruby install.&lt;/p&gt;
 
-&lt;p&gt;Alongside our &lt;code&gt;Dockerfile&lt;/code&gt;, we&amp;#39;ll need to add a &lt;code&gt;Gemfile&lt;/code&gt; containing the following:&lt;/p&gt;
+&lt;p&gt;One of the quickest ways to generate a new Rails application is simply to use the pre-built Bitnami image and execute:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;docker run --rm -v $(pwd):/app bitnami/rails:latest rails new my_app --database postgresql
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;Which will pull the Bitnami image and generate a new Rails app called &lt;code&gt;my_app&lt;/code&gt; in the current directory.&lt;/p&gt;
+
+&lt;p&gt;Alternatively, if you wish to avoid use of a third party image, alongside our &lt;code&gt;Dockerfile&lt;/code&gt;, we&amp;#39;ll need to add a &lt;code&gt;Gemfile&lt;/code&gt; containing the following:&lt;/p&gt;
 &lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;source &amp;#39;https://rubygems.org&amp;#39; do
-  gem &amp;quot;rails&amp;quot;
+  gem &amp;quot;rails&amp;quot;,
 end
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;and a blank &lt;code&gt;Gemfile.lock&lt;/code&gt;&lt;/p&gt;
 
-&lt;p&gt;Then execute the following to build the initial Docker image:&lt;/p&gt;
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;docker-compose build
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;Then execute:&lt;/p&gt;
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;docker-compose run app rails new . --database=postgresql
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;docker build -t my_rails_image .
+docker run --rm -v $(pwd):/app my_rails_image rails new my_app --database postgresql
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;p&gt;Note this will create a Rails application called &lt;code&gt;App&lt;/code&gt; and is the equivilant of running &lt;code&gt;rails new app&lt;/code&gt; since it will be inferred from the &lt;code&gt;app folder&lt;/code&gt; in the Dockerfile. There are a few approaches to changing this but the simplest is to replace all references to &lt;code&gt;app&lt;/code&gt; in the &lt;code&gt;Dockerfile&lt;/code&gt; with the desired name of your app before running &lt;code&gt;docker-compose build&lt;/code&gt; and then reverting them afterwards.&lt;/p&gt;
-
-&lt;p&gt;If you pass in an application name instead of &lt;code&gt;.&lt;/code&gt; then the application will be created in a sub-folder of the current directory and you&amp;#39;ll need to move everything into the root.&lt;/p&gt;
-
-&lt;p&gt;Once the rails application is created, we revert any changes to the &lt;code&gt;Dockerfile&lt;/code&gt; re-run:&lt;/p&gt;
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;docker-compose build
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;p&gt;To re-build the image with all required gems.&lt;/p&gt;
+&lt;p&gt;Which builds an image based on our Dockerfile, tags it with the name &lt;code&gt;my_rails_image&lt;/code&gt; and then runs &lt;code&gt;rails new myapp --database postgresql&lt;/code&gt; within a container based on that image and creates a new Rails application as a subfolder.&lt;/p&gt;
 
 &lt;h2&gt;Dockerising the application&lt;/h2&gt;
 
@@ -230,19 +228,19 @@ host: &amp;lt;%= ENV.fetch(&amp;quot;DB_HOST&amp;quot;) %&amp;gt;
 
 &lt;h2&gt;Deploying to production&lt;/h2&gt;
 
-&lt;p&gt;Part two covers how to deploy this application to a Kubernetes Cluster on any VPS or Bare Metal provider without having to learn several thousands previously unheard of pieces of terminology. &lt;/p&gt;
+&lt;p&gt;Part two covers how to deploy this application to a Kubernetes Cluster on any VPS or Bare Metal provider without having to learn several thousands previously unheard of pieces of terminology.&lt;/p&gt;
 
 &lt;p&gt;Feel free to ping me on twitter &lt;a href=&quot;https://www.twitter.com/talkingquickly&quot;&gt;@TalkingQuickly&lt;/a&gt; with any questions or feedback, in particular I&amp;#39;d love to know if a screencast version of this tutorial would be useful?&lt;/p&gt;
 </content>
-<summary>Docker and Docker Compose makes it a single command to bring up a development environment on any system which supports Docker. This removes the need to invest time setting up local development environments. For me this means the time to a working development environment, even on a fresh machine for a project I haven&amp;#39;t worked on for months or years, is just a few seconds.</summary>
+<summary>Docker and Docker Compose reduces bringing up a development environment on any system which supports Docker to a single command. For me this means the time to a working development environment, even on a fresh machine for a project I haven&amp;#39;t worked on for months or years, is just a few seconds.</summary>
 </entry>
 <entry>
 <title>Startup Reading List (2018 Edition)</title>
-<link href="https://www.talkingquickly.co.uk/2017/11/startup-reading-list" rel="alternate" type="text/html" title="Startup Reading List (2018 Edition)" />
+<link href="https://www.talkingquickly.co.uk/2017/11/startup-reading-list/" rel="alternate" type="text/html" title="Startup Reading List (2018 Edition)" />
 <published>2017-11-28T08:00:00+00:00</published>
 <updated>2017-11-28T08:00:00+00:00</updated>
 <id>https://www.talkingquickly.co.uk/2017/11/startup-reading-list</id>
-<content type="html" xml:base="https://www.talkingquickly.co.uk/2017/11/startup-reading-list">&lt;p&gt;Something most of the startup and product people I look up to have in common is that they read, a lot. They also challenge what they read. Rather than reading a chapter, then immediately trying to implement what they&amp;#39;ve read, their books are full of post-it notes and scribbles, dinners and emails are full of debates on one methodology or idea v another.&lt;/p&gt;
+<content type="html" xml:base="https://www.talkingquickly.co.uk/2017/11/startup-reading-list/">&lt;p&gt;Something most of the startup and product people I look up to have in common is that they read, a lot. They also challenge what they read. Rather than reading a chapter, then immediately trying to implement what they&amp;#39;ve read, their books are full of post-it notes and scribbles, dinners and emails are full of debates on one methodology or idea v another.&lt;/p&gt;
 
 &lt;!--more--&gt;
 
@@ -324,11 +322,11 @@ host: &amp;lt;%= ENV.fetch(&amp;quot;DB_HOST&amp;quot;) %&amp;gt;
 </entry>
 <entry>
 <title>2015 In Review</title>
-<link href="https://www.talkingquickly.co.uk/2016/05/2015-in-review" rel="alternate" type="text/html" title="2015 In Review" />
+<link href="https://www.talkingquickly.co.uk/2016/05/2015-in-review/" rel="alternate" type="text/html" title="2015 In Review" />
 <published>2016-05-06T08:00:00+00:00</published>
 <updated>2016-05-06T08:00:00+00:00</updated>
 <id>https://www.talkingquickly.co.uk/2016/05/2015-in-review</id>
-<content type="html" xml:base="https://www.talkingquickly.co.uk/2016/05/2015-in-review">&lt;p&gt;May 2016 seems like a reasonable interval to have given 2015 to sink in. 2015 was expected to begin at a Full Moon Party on one or other island off the coast of Thailand. Instead it began with a hastily booked flight back to London and a week or so recovering from three days of hallucinations and dehydration on Aonang - they really do food poisoning properly there. Can&amp;#39;t say I&amp;#39;m proud for bailing due to food poisoning; live and learn.&lt;/p&gt;
+<content type="html" xml:base="https://www.talkingquickly.co.uk/2016/05/2015-in-review/">&lt;p&gt;May 2016 seems like a reasonable interval to have given 2015 to sink in. 2015 was expected to begin at a Full Moon Party on one or other island off the coast of Thailand. Instead it began with a hastily booked flight back to London and a week or so recovering from three days of hallucinations and dehydration on Aonang - they really do food poisoning properly there. Can&amp;#39;t say I&amp;#39;m proud for bailing due to food poisoning; live and learn.&lt;/p&gt;
 
 &lt;!--more--&gt;
 
@@ -557,11 +555,11 @@ here
 </entry>
 <entry>
 <title>What I&amp;#39;d tell myself about startups if I could go back 5 years.</title>
-<link href="https://www.talkingquickly.co.uk/2015/04/what-id-tell-myself-about-startups" rel="alternate" type="text/html" title="What I'd tell myself about startups if I could go back 5 years." />
+<link href="https://www.talkingquickly.co.uk/2015/04/what-id-tell-myself-about-startups/" rel="alternate" type="text/html" title="What I'd tell myself about startups if I could go back 5 years." />
 <published>2015-04-02T11:34:00+00:00</published>
 <updated>2015-04-02T11:34:00+00:00</updated>
 <id>https://www.talkingquickly.co.uk/2015/04/what-id-tell-myself-about-startups</id>
-<content type="html" xml:base="https://www.talkingquickly.co.uk/2015/04/what-id-tell-myself-about-startups">&lt;p&gt;This is, in no particular order, what I&amp;#39;d tell myself about startups if I could go back in time to when I first got involved. Which is probably the same as what I&amp;#39;ve learned. This is most definitely not advice, the &amp;quot;you&amp;quot; here is directed at me. So is &amp;quot;I&amp;quot;. Grammar is hard.&lt;/p&gt;
+<content type="html" xml:base="https://www.talkingquickly.co.uk/2015/04/what-id-tell-myself-about-startups/">&lt;p&gt;This is, in no particular order, what I&amp;#39;d tell myself about startups if I could go back in time to when I first got involved. Which is probably the same as what I&amp;#39;ve learned. This is most definitely not advice, the &amp;quot;you&amp;quot; here is directed at me. So is &amp;quot;I&amp;quot;. Grammar is hard.&lt;/p&gt;
 
 &lt;!--more--&gt;
 
@@ -635,11 +633,11 @@ here
 </entry>
 <entry>
 <title>2014 In Review</title>
-<link href="https://www.talkingquickly.co.uk/2015/02/2014-in-review" rel="alternate" type="text/html" title="2014 In Review" />
+<link href="https://www.talkingquickly.co.uk/2015/02/2014-in-review/" rel="alternate" type="text/html" title="2014 In Review" />
 <published>2015-02-12T08:00:00+00:00</published>
 <updated>2015-02-12T08:00:00+00:00</updated>
 <id>https://www.talkingquickly.co.uk/2015/02/2014-in-review</id>
-<content type="html" xml:base="https://www.talkingquickly.co.uk/2015/02/2014-in-review">&lt;p&gt;Having reached 2015 I&amp;#39;m forced to acknowledge that 2013 In Review is probably not going to happen. I might even remove it from my ToDo list where it&amp;#39;s now the oldest item after returning the copy of &amp;quot;Chaos&amp;quot; I borrowed from a public library in my first year of university, six years of fines are going to hurt. In the spirit of &lt;a href=&quot;&quot;&gt;it probably isn&amp;#39;t a big deal&lt;/a&gt; I&amp;#39;ll dive straight into 2014 but with a scattering of confusing references to 2013 for context.&lt;/p&gt;
+<content type="html" xml:base="https://www.talkingquickly.co.uk/2015/02/2014-in-review/">&lt;p&gt;Having reached 2015 I&amp;#39;m forced to acknowledge that 2013 In Review is probably not going to happen. I might even remove it from my ToDo list where it&amp;#39;s now the oldest item after returning the copy of &amp;quot;Chaos&amp;quot; I borrowed from a public library in my first year of university, six years of fines are going to hurt. In the spirit of &lt;a href=&quot;&quot;&gt;it probably isn&amp;#39;t a big deal&lt;/a&gt; I&amp;#39;ll dive straight into 2014 but with a scattering of confusing references to 2013 for context.&lt;/p&gt;
 
 &lt;!--more--&gt;
 
@@ -852,11 +850,11 @@ here
 </entry>
 <entry>
 <title>DIY EKG Using Arduino and Javascript</title>
-<link href="https://www.talkingquickly.co.uk/2015/01/diy-ekg-with-arduino-javascript" rel="alternate" type="text/html" title="DIY EKG Using Arduino and Javascript" />
+<link href="https://www.talkingquickly.co.uk/2015/01/diy-ekg-with-arduino-javascript/" rel="alternate" type="text/html" title="DIY EKG Using Arduino and Javascript" />
 <published>2015-01-15T22:16:00+00:00</published>
 <updated>2015-01-15T22:16:00+00:00</updated>
 <id>https://www.talkingquickly.co.uk/2015/01/diy-ekg-with-arduino-javascript</id>
-<content type="html" xml:base="https://www.talkingquickly.co.uk/2015/01/diy-ekg-with-arduino-javascript">&lt;p&gt;An EKG (electrocardiogram) - also referred to as an ECG - is a recording of the electrical activity of the heart. This can be used for measuring the rate and regularity of heart beats. Using a readily available Arduino shield, an Arduino and a $10 set of electrodes, it&amp;#39;s possible to generate this waveform at home and then manipulate and plot it in realtime using Javascript.&lt;/p&gt;
+<content type="html" xml:base="https://www.talkingquickly.co.uk/2015/01/diy-ekg-with-arduino-javascript/">&lt;p&gt;An EKG (electrocardiogram) - also referred to as an ECG - is a recording of the electrical activity of the heart. This can be used for measuring the rate and regularity of heart beats. Using a readily available Arduino shield, an Arduino and a $10 set of electrodes, it&amp;#39;s possible to generate this waveform at home and then manipulate and plot it in realtime using Javascript.&lt;/p&gt;
 
 &lt;!--more--&gt;
 
@@ -959,11 +957,11 @@ TXBuf[15] = 0x00;   //CH6 Low Byte
 </entry>
 <entry>
 <title>Google Cardboard Unity Tutorial</title>
-<link href="https://www.talkingquickly.co.uk/2014/11/google-cardboard-unity-tutorial" rel="alternate" type="text/html" title="Google Cardboard Unity Tutorial" />
+<link href="https://www.talkingquickly.co.uk/2014/11/google-cardboard-unity-tutorial/" rel="alternate" type="text/html" title="Google Cardboard Unity Tutorial" />
 <published>2014-11-09T19:36:00+00:00</published>
 <updated>2014-11-09T19:36:00+00:00</updated>
 <id>https://www.talkingquickly.co.uk/2014/11/google-cardboard-unity-tutorial</id>
-<content type="html" xml:base="https://www.talkingquickly.co.uk/2014/11/google-cardboard-unity-tutorial">&lt;p&gt;Having tried the Oculus I&amp;#39;d prepared myself to be completely unimpressed by Google&amp;#39;s $2 VR solution. But after trying Roller Coaster VR I was blown away by how well the slightly shabby looking cardboard assembly performed. Naturally despite never have tried any game development or 3D modeling, I wanted to make stuff for it. Using Unity and some plugins, this turned out to be surprisingly easy. This tutorial covers the bare minimum needed to go from never having used Unity before, to a simple 3D environment you can look around using Google Cardboard.&lt;/p&gt;
+<content type="html" xml:base="https://www.talkingquickly.co.uk/2014/11/google-cardboard-unity-tutorial/">&lt;p&gt;Having tried the Oculus I&amp;#39;d prepared myself to be completely unimpressed by Google&amp;#39;s $2 VR solution. But after trying Roller Coaster VR I was blown away by how well the slightly shabby looking cardboard assembly performed. Naturally despite never have tried any game development or 3D modeling, I wanted to make stuff for it. Using Unity and some plugins, this turned out to be surprisingly easy. This tutorial covers the bare minimum needed to go from never having used Unity before, to a simple 3D environment you can look around using Google Cardboard.&lt;/p&gt;
 
 &lt;!--more--&gt;
 
@@ -1093,11 +1091,11 @@ TXBuf[15] = 0x00;   //CH6 Low Byte
 </entry>
 <entry>
 <title>Automatically Generate Vagrant Machines from Chef Node Definitions</title>
-<link href="https://www.talkingquickly.co.uk/2014/08/auto-generate-vagrant-machines-from-chef-node-definitions" rel="alternate" type="text/html" title="Automatically Generate Vagrant Machines from Chef Node Definitions" />
+<link href="https://www.talkingquickly.co.uk/2014/08/auto-generate-vagrant-machines-from-chef-node-definitions/" rel="alternate" type="text/html" title="Automatically Generate Vagrant Machines from Chef Node Definitions" />
 <published>2014-08-09T08:00:00+00:00</published>
 <updated>2014-08-09T08:00:00+00:00</updated>
 <id>https://www.talkingquickly.co.uk/2014/08/auto-generate-vagrant-machines-from-chef-node-definitions</id>
-<content type="html" xml:base="https://www.talkingquickly.co.uk/2014/08/auto-generate-vagrant-machines-from-chef-node-definitions">&lt;p&gt;If you use chef-solo to provision your production servers, Vagrant makes it easy to set up a production- like environment on a local VM for testing purposes. It can however seem like wasted time to have to manually replicate the contents of your node definition in your &lt;code&gt;Vagrantfile&lt;/code&gt; and more importantly it&amp;#39;s easy to make a change to either the &lt;code&gt;Vagrantfile&lt;/code&gt; or the node definition and forget to update the other to match. In this post I&amp;#39;ll look at a simple method of automatically generating Vagrant machines based on node definitions.&lt;/p&gt;
+<content type="html" xml:base="https://www.talkingquickly.co.uk/2014/08/auto-generate-vagrant-machines-from-chef-node-definitions/">&lt;p&gt;If you use chef-solo to provision your production servers, Vagrant makes it easy to set up a production- like environment on a local VM for testing purposes. It can however seem like wasted time to have to manually replicate the contents of your node definition in your &lt;code&gt;Vagrantfile&lt;/code&gt; and more importantly it&amp;#39;s easy to make a change to either the &lt;code&gt;Vagrantfile&lt;/code&gt; or the node definition and forget to update the other to match. In this post I&amp;#39;ll look at a simple method of automatically generating Vagrant machines based on node definitions.&lt;/p&gt;
 
 &lt;!--more--&gt;
 
@@ -1319,11 +1317,11 @@ TXBuf[15] = 0x00;   //CH6 Low Byte
 </entry>
 <entry>
 <title>A Rails Development Environment with Docker and Vagrant</title>
-<link href="https://www.talkingquickly.co.uk/2014/06/rails-development-environment-with-vagrant-and-docker" rel="alternate" type="text/html" title="A Rails Development Environment with Docker and Vagrant" />
+<link href="https://www.talkingquickly.co.uk/2014/06/rails-development-environment-with-vagrant-and-docker/" rel="alternate" type="text/html" title="A Rails Development Environment with Docker and Vagrant" />
 <published>2014-06-03T08:00:00+00:00</published>
 <updated>2014-06-03T08:00:00+00:00</updated>
 <id>https://www.talkingquickly.co.uk/2014/06/rails-development-environment-with-vagrant-and-docker</id>
-<content type="html" xml:base="https://www.talkingquickly.co.uk/2014/06/rails-development-environment-with-vagrant-and-docker">&lt;p&gt;Onboarding new developers to a Rails projects is still a far harder task than it should be. A big part of this is that setting up a development environment for an app or suite of apps, getting the correct ruby versions, database versions etc running locally, can in many cases take upwards of a day. A combination of Vagrant and Docker can make this a thing of the past.&lt;/p&gt;
+<content type="html" xml:base="https://www.talkingquickly.co.uk/2014/06/rails-development-environment-with-vagrant-and-docker/">&lt;p&gt;Onboarding new developers to a Rails projects is still a far harder task than it should be. A big part of this is that setting up a development environment for an app or suite of apps, getting the correct ruby versions, database versions etc running locally, can in many cases take upwards of a day. A combination of Vagrant and Docker can make this a thing of the past.&lt;/p&gt;
 
 &lt;!--more--&gt;
 
@@ -1690,11 +1688,11 @@ bundle &lt;span class=&quot;nb&quot;&gt;exec&lt;/span&gt; unicorn -p &lt;span cl
 </entry>
 <entry>
 <title>DNSimple SSL Certificates and NGinx</title>
-<link href="https://www.talkingquickly.co.uk/2014/05/dnsimple-ssl-certificates-nginx" rel="alternate" type="text/html" title="DNSimple SSL Certificates and NGinx" />
+<link href="https://www.talkingquickly.co.uk/2014/05/dnsimple-ssl-certificates-nginx/" rel="alternate" type="text/html" title="DNSimple SSL Certificates and NGinx" />
 <published>2014-05-12T12:00:00+00:00</published>
 <updated>2014-05-12T12:00:00+00:00</updated>
 <id>https://www.talkingquickly.co.uk/2014/05/dnsimple-ssl-certificates-nginx</id>
-<content type="html" xml:base="https://www.talkingquickly.co.uk/2014/05/dnsimple-ssl-certificates-nginx">&lt;p&gt;If you purchase a Geotrust SSL Certificate from DNSimple for your domain, there&amp;#39;s a small amount of setup required to get the certificate in a format you can use with Nginx. This post includes an overview of the process and a simple bash script to automate it.&lt;/p&gt;
+<content type="html" xml:base="https://www.talkingquickly.co.uk/2014/05/dnsimple-ssl-certificates-nginx/">&lt;p&gt;If you purchase a Geotrust SSL Certificate from DNSimple for your domain, there&amp;#39;s a small amount of setup required to get the certificate in a format you can use with Nginx. This post includes an overview of the process and a simple bash script to automate it.&lt;/p&gt;
 
 &lt;!--more--&gt;
 

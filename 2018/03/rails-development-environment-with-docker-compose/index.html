@@ -45,7 +45,7 @@
         <h1 class="post-title">A Rails development environment with Docker</h1>
 
         <section class="post-content">
-            <p>Docker and Docker Compose makes it a single command to bring up a development environment on any system which supports Docker. This removes the need to invest time setting up local development environments. For me this means the time to a working development environment, even on a fresh machine for a project I haven&#39;t worked on for months or years, is just a few seconds.</p>
+            <p>Docker and Docker Compose reduces bringing up a development environment on any system which supports Docker to a single command. For me this means the time to a working development environment, even on a fresh machine for a project I haven&#39;t worked on for months or years, is just a few seconds.</p>
 
 <!--more-->
 
@@ -55,11 +55,11 @@
 
 <p>We&#39;ll need to have Docker installed locally <a href="https://docs.docker.com/install/">https://docs.docker.com/install/</a>. We&#39;ll also need <code>docker-compose</code> installed, for OSX then this is included when installing Docker, for Linux, it must be installed separately and instructions are here; <a href="https://docs.docker.com/compose/install/#install-compose">https://docs.docker.com/compose/install/#install-compose</a>.</p>
 
-<h2>Adding files</h2>
+<h2>Dockerising a Rails Application</h2>
 
 <p>For an existing Rails application the files below should be added to the root of the project. If generating a new project we should create an empty directory with the name matching the desired name of the Rails project and create the files here. We&#39;ll cover generating the Rails application itself using Docker below.</p>
 
-<p>First we add a file called <code>Dockerfile</code> which defines how to build the runtime environment for our application:</p>
+<p>First we add a file called <code>Dockerfile</code> to the project root which defines how to build the runtime environment for our application:</p>
 <div class="highlight"><pre><code class="language-text" data-lang="text"><span></span>FROM ruby:2.4.2
 MAINTAINER YOUR_EMAIL
 
@@ -86,10 +86,12 @@ RUN gem install bundler &amp;&amp; bundle install --jobs 20 --retry 5
 
 COPY . /app
 RUN rm -rf tmp/*
+
+ADD . /app
 </code></pre></div>
 <p>Replacing <code>YOUR_EMAIL</code> with your email address.</p>
 
-<p>Then we add a second file called <code>docker-compose.yml</code> containing the following:</p>
+<p>Then we add a second file called <code>docker-compose.yml</code> to the project root containing the following:</p>
 <div class="highlight"><pre><code class="language-text" data-lang="text"><span></span>version: &quot;3&quot;
 services:
   app:
@@ -129,38 +131,34 @@ volumes:
 </code></pre></div>
 <h2>The compose file</h2>
 
-<p>As mentioned at the start, this tutorial isn&#39;t an in depth introduction to Docker or Compose, but a few elements of this compose file are worth noting as they differ from the many other Rails compose files out there:</p>
+<p>A few elements of this compose file are worth noting as they differ from the many other Rails compose files out there:</p>
 
 <ul>
 <li>We don&#39;t use <code>links</code>, these are <a href="https://docs.docker.com/compose/compose-file/#links">no longer the recommended approach</a> for establishing communication between containers. Instead services are available by hostname where the hostname will be the name of the service. E.g. in this case our <code>app</code> conainer can access postgres via the hostname <code>postgres</code> and redis via the hostname <code>redis</code></li>
-<li>The <code>:delegated</code> option on the volume mount for our app directory. This is specific to Docker for Mac, although won&#39;t cause problems on other platforms. Details of what this does are <a href="https://docs.docker.com/compose/compose-file/#caching-options-for-volume-mounts-docker-for-mac">available here</a> but it provides a substantial improvement in filesystem performance on OSX, without which day to day development of Rails applications can be painful.</li>
+<li>The <code>:delegated</code> option on the volume mount for our app directory. This is specific to Docker for Mac, although won&#39;t cause problems on other platforms. Details of what this does are <a href="https://docs.docker.com/compose/compose-file/#caching-options-for-volume-mounts-docker-for-mac">available here</a> but it provides a substantial improvement in filesystem performance on OSX, without which day to day development of Rails applications can be painful. If file performance is still not sufficient for your application, it&#39;s worth considering <a href="http://docker-sync.io/">Docker Sync</a> although the 60x slowdown references on that site is substantially reduced by the sue of <code>delegated</code> on OSX</li>
 </ul>
 
 <h2>Generating a new application</h2>
 
 <p>When working with an existing Rails application, we can skip this section. Using Docker to generate the entire application is especially useful when trying to maintain no local development environment at all, so we can develop Rails applications without ever needing a local Ruby install.</p>
 
-<p>Alongside our <code>Dockerfile</code>, we&#39;ll need to add a <code>Gemfile</code> containing the following:</p>
+<p>One of the quickest ways to generate a new Rails application is simply to use the pre-built Bitnami image and execute:</p>
+<div class="highlight"><pre><code class="language-text" data-lang="text"><span></span>docker run --rm -v $(pwd):/app bitnami/rails:latest rails new my_app --database postgresql
+</code></pre></div>
+<p>Which will pull the Bitnami image and generate a new Rails app called <code>my_app</code> in the current directory.</p>
+
+<p>Alternatively, if you wish to avoid use of a third party image, alongside our <code>Dockerfile</code>, we&#39;ll need to add a <code>Gemfile</code> containing the following:</p>
 <div class="highlight"><pre><code class="language-text" data-lang="text"><span></span>source &#39;https://rubygems.org&#39; do
-  gem &quot;rails&quot;
+  gem &quot;rails&quot;,
 end
 </code></pre></div>
 <p>and a blank <code>Gemfile.lock</code></p>
 
-<p>Then execute the following to build the initial Docker image:</p>
-<div class="highlight"><pre><code class="language-text" data-lang="text"><span></span>docker-compose build
-</code></pre></div>
 <p>Then execute:</p>
-<div class="highlight"><pre><code class="language-text" data-lang="text"><span></span>docker-compose run app rails new . --database=postgresql
+<div class="highlight"><pre><code class="language-text" data-lang="text"><span></span>docker build -t my_rails_image .
+docker run --rm -v $(pwd):/app my_rails_image rails new my_app --database postgresql
 </code></pre></div>
-<p>Note this will create a Rails application called <code>App</code> and is the equivilant of running <code>rails new app</code> since it will be inferred from the <code>app folder</code> in the Dockerfile. There are a few approaches to changing this but the simplest is to replace all references to <code>app</code> in the <code>Dockerfile</code> with the desired name of your app before running <code>docker-compose build</code> and then reverting them afterwards.</p>
-
-<p>If you pass in an application name instead of <code>.</code> then the application will be created in a sub-folder of the current directory and you&#39;ll need to move everything into the root.</p>
-
-<p>Once the rails application is created, we revert any changes to the <code>Dockerfile</code> re-run:</p>
-<div class="highlight"><pre><code class="language-text" data-lang="text"><span></span>docker-compose build
-</code></pre></div>
-<p>To re-build the image with all required gems.</p>
+<p>Which builds an image based on our Dockerfile, tags it with the name <code>my_rails_image</code> and then runs <code>rails new myapp --database postgresql</code> within a container based on that image and creates a new Rails application as a subfolder.</p>
 
 <h2>Dockerising the application</h2>
 
@@ -259,7 +257,7 @@ host: &lt;%= ENV.fetch(&quot;DB_HOST&quot;) %&gt;
 
 <h2>Deploying to production</h2>
 
-<p>Part two covers how to deploy this application to a Kubernetes Cluster on any VPS or Bare Metal provider without having to learn several thousands previously unheard of pieces of terminology. </p>
+<p>Part two covers how to deploy this application to a Kubernetes Cluster on any VPS or Bare Metal provider without having to learn several thousands previously unheard of pieces of terminology.</p>
 
 <p>Feel free to ping me on twitter <a href="https://www.twitter.com/talkingquickly">@TalkingQuickly</a> with any questions or feedback, in particular I&#39;d love to know if a screencast version of this tutorial would be useful?</p>
 
