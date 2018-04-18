@@ -3,22 +3,13 @@
 <generator uri="http://jekyllrb.com" version="3.7.2">Jekyll</generator>
 <link href="https://www.talkingquickly.co.uk/rss.xml" rel="self" type="application/atom+xml" />
 <link href="https://www.talkingquickly.co.uk/" rel="alternate" type="text/html" />
-<updated>2018-04-18T13:26:10+00:00</updated>
+<updated>2018-04-18T13:31:43+00:00</updated>
 <id>https://www.talkingquickly.co.uk/</id>
 <title>talkingquickly</title>
 <subtitle>rails, docker, stress free deployment and small steps taken quickly</subtitle>
 <author>
 <name>Ben Dixon</name>
 </author>
-<entry>
-<title>Thinking About Detail</title>
-<link href="https://www.talkingquickly.co.uk/2018/04/thinking-about-detail/" rel="alternate" type="text/html" title="Thinking About Detail" />
-<published>2018-04-18T00:00:00+00:00</published>
-<updated>2018-04-18T00:00:00+00:00</updated>
-<id>https://www.talkingquickly.co.uk/2018/04/thinking-about-detail</id>
-<content type="html" xml:base="https://www.talkingquickly.co.uk/2018/04/thinking-about-detail/"></content>
-<summary></summary>
-</entry>
 <entry>
 <title>A Rails development environment with Docker</title>
 <link href="https://www.talkingquickly.co.uk/2018/03/rails-development-environment-with-docker-compose/" rel="alternate" type="text/html" title="A Rails development environment with Docker" />
@@ -1697,5 +1688,106 @@ bundle &lt;span class=&quot;nb&quot;&gt;exec&lt;/span&gt; unicorn -p &lt;span cl
 &lt;/ul&gt;
 </content>
 <summary>Onboarding new developers to a Rails projects is still a far harder task than it should be. A big part of this is that setting up a development environment for an app or suite of apps, getting the correct ruby versions, database versions etc running locally, can in many cases take upwards of a day. A combination of Vagrant and Docker can make this a thing of the past.</summary>
+</entry>
+<entry>
+<title>DNSimple SSL Certificates and NGinx</title>
+<link href="https://www.talkingquickly.co.uk/2014/05/dnsimple-ssl-certificates-nginx/" rel="alternate" type="text/html" title="DNSimple SSL Certificates and NGinx" />
+<published>2014-05-12T12:00:00+00:00</published>
+<updated>2014-05-12T12:00:00+00:00</updated>
+<id>https://www.talkingquickly.co.uk/2014/05/dnsimple-ssl-certificates-nginx</id>
+<content type="html" xml:base="https://www.talkingquickly.co.uk/2014/05/dnsimple-ssl-certificates-nginx/">&lt;p&gt;If you purchase a Geotrust SSL Certificate from DNSimple for your domain, there&amp;#39;s a small amount of setup required to get the certificate in a format you can use with Nginx. This post includes an overview of the process and a simple bash script to automate it.&lt;/p&gt;
+
+&lt;!--more--&gt;
+
+&lt;p&gt;You&amp;#39;ll have three certificate files:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Your Certificate&lt;/li&gt;
+&lt;li&gt;Primary Intermediate CA&lt;/li&gt;
+&lt;li&gt;Secondary Intermediate CA&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;These have to be concatinated into one file in the order:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;YOUR CERTIFICATE
+SECONDARY INTERMEDIATE CA
+PRIMARY INTERMEDIATE CA
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;E.g:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;cat my.crt secondary.crt primary.crt &amp;gt; ssl_cert.crt
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;Start with 4 files:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;my.crt&lt;/li&gt;
+&lt;li&gt;secondary.crt&lt;/li&gt;
+&lt;li&gt;primary.crt&lt;/li&gt;
+&lt;li&gt;ssl_private_key.key.new&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Assuming your destination files are &lt;code&gt;ssl_cert.crt&lt;/code&gt; and &lt;code&gt;ssl_private_key.key&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;The following bash script provides a simple interface for switching in new certs and rolling back in the case that something goes wrong. The script should be stored in the same directory as the target for the certificates. In the case of our sample configuration, this is &lt;code&gt;/home/deploy/your_app_environment/shared/&lt;/code&gt;.&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span&gt;&lt;/span&gt;&lt;span class=&quot;ch&quot;&gt;#!/bin/bash&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;$#&lt;/span&gt; -lt &lt;span class=&quot;m&quot;&gt;1&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;then&lt;/span&gt;
+        &lt;span class=&quot;nb&quot;&gt;echo&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;Usage : &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$0&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt; command&amp;quot;&lt;/span&gt;
+        &lt;span class=&quot;nb&quot;&gt;echo&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;Expects: my.crt, secondary.crt, primary.crt, ssl_private_key.key.new&amp;quot;&lt;/span&gt;
+        &lt;span class=&quot;nb&quot;&gt;echo&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;Commands:&amp;quot;&lt;/span&gt;
+        &lt;span class=&quot;nb&quot;&gt;echo&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;load_new_certs&amp;quot;&lt;/span&gt;
+        &lt;span class=&quot;nb&quot;&gt;echo&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;rollback_certs&amp;quot;&lt;/span&gt;
+        &lt;span class=&quot;nb&quot;&gt;echo&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;cleanup_certs&amp;quot;&lt;/span&gt;
+        &lt;span class=&quot;nb&quot;&gt;exit&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;fi&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;case&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$1&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&amp;quot;&lt;/span&gt; in
+
+load_new_certs&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;  &lt;span class=&quot;nb&quot;&gt;echo&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;Copying New Certs&amp;quot;&lt;/span&gt;
+    cat my.crt secondary.crt primary.crt &amp;gt; ssl_cert.crt.new
+
+    mv ssl_cert.crt ssl_cert.crt.old
+    mv ssl_cert.crt.new ssl_cert.crt
+
+    mv ssl_private_key.key ssl_private_key.key.old
+    mv ssl_private_key.key.new ssl_private_key.key
+
+    sudo service nginx reload
+    &lt;span class=&quot;p&quot;&gt;;;&lt;/span&gt;
+rollback_certs&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;  &lt;span class=&quot;nb&quot;&gt;echo&lt;/span&gt;  &lt;span class=&quot;s2&quot;&gt;&amp;quot;Rolling Back to Old Certs&amp;quot;&lt;/span&gt;
+    mv ssl_cert.crt ssl_cert.crt.new
+    mv ssl_cert.crt.old ssl_cert.crt
+
+    mv ssl_private_key.key ssl_private_key.key.new
+    mv ssl_private_key.key.old ssl_private_key.key
+
+    sudo service nginx reload
+    &lt;span class=&quot;p&quot;&gt;;;&lt;/span&gt;
+cleanup_certs&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;  &lt;span class=&quot;nb&quot;&gt;echo&lt;/span&gt;  &lt;span class=&quot;s2&quot;&gt;&amp;quot;Cleaning Up Temporary Files&amp;quot;&lt;/span&gt;
+    rm ssl_cert.crt.old
+    rm ssl_private_key.key.old
+    rm my.crt
+    rm secondary.crt
+    rm primary.crt
+    &lt;span class=&quot;p&quot;&gt;;;&lt;/span&gt;
+*&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;echo&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;Command not known&amp;quot;&lt;/span&gt;
+   &lt;span class=&quot;p&quot;&gt;;;&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;esac&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;Don&amp;#39;t forget to make the script executable with &lt;code&gt;chmod +x script_name.sh&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;You can then simply run:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span&gt;&lt;/span&gt;./script_name load_new_certs
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;to swap in the new certificates and reload nginx. If, after testing the site, something isn&amp;#39;t right, you can execute:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span&gt;&lt;/span&gt;./script_name rollback_certs
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;To revert to the previous ones. And then repeat &lt;code&gt;load_new_certs&lt;/code&gt; once you&amp;#39;ve resolved the issue.&lt;/p&gt;
+
+&lt;p&gt;Once you have the new certificates working as intended, you can use:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span&gt;&lt;/span&gt;./script_name cleanup_certs
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;To remove the temporary and legacy files created.&lt;/p&gt;
+</content>
+<summary>If you purchase a Geotrust SSL Certificate from DNSimple for your domain, there&amp;#39;s a small amount of setup required to get the certificate in a format you can use with Nginx. This post includes an overview of the process and a simple bash script to automate it.</summary>
 </entry>
 </feed>
