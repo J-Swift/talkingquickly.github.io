@@ -155,11 +155,14 @@ end
 <p>and a blank <code>Gemfile.lock</code></p>
 
 <p>Then execute:</p>
-<div class="highlight"><pre><code class="language-text" data-lang="text"><span></span>docker build -t my_rails_image .
-docker run --rm -v $(pwd):/app my_rails_image rails new my_app --database postgresql
+<div class="highlight"><pre><code class="language-text" data-lang="text"><span></span>docker build -t my_name/my_rails_image .
+docker run --rm -v $(pwd):/app my_name/my_rails_image rails new my_app --database postgresql
 </code></pre></div>
 <p>Which builds an image based on our Dockerfile, tags it with the name <code>my_rails_image</code> and then runs <code>rails new myapp --database postgresql</code> within a container based on that image and creates a new Rails application as a subfolder.</p>
 
+<p>Once we have this image built locally, we can re-use it in future with:</p>
+<div class="highlight"><pre><code class="language-text" data-lang="text"><span></span>docker run --rm -v $(pwd):/app my_name/my_rails_image rails new my_app --database postgresql
+</code></pre></div>
 <h2>Dockerising the application</h2>
 
 <p>Our <code>docker-compose.yml</code> file will bring up not only our rails application, but supporting Postgres and Redis instances.</p>
@@ -257,7 +260,7 @@ host: &lt;%= ENV.fetch(&quot;DB_HOST&quot;) %&gt;
 
 <h2>Deploying to production</h2>
 
-<p>Part two covers how to deploy this application to a Kubernetes Cluster on any VPS or Bare Metal provider without having to learn several thousands previously unheard of pieces of terminology.</p>
+<p>Part two covers how to deploy this application to a Kubernetes Cluster on any VPS or Bare Metal provider without having to learn several thousand previously unheard of pieces of terminology.</p>
 
 <p>Feel free to ping me on twitter <a href="https://www.twitter.com/talkingquickly">@TalkingQuickly</a> with any questions or feedback, in particular I&#39;d love to know if a screencast version of this tutorial would be useful?</p>
 
