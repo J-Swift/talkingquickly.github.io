@@ -3,7 +3,7 @@
 <generator uri="http://jekyllrb.com" version="3.7.2">Jekyll</generator>
 <link href="https://www.talkingquickly.co.uk/rss.xml" rel="self" type="application/atom+xml" />
 <link href="https://www.talkingquickly.co.uk/" rel="alternate" type="text/html" />
-<updated>2018-04-18T13:31:43+00:00</updated>
+<updated>2018-04-18T14:17:13+00:00</updated>
 <id>https://www.talkingquickly.co.uk/</id>
 <title>talkingquickly</title>
 <subtitle>rails, docker, stress free deployment and small steps taken quickly</subtitle>
@@ -1327,6 +1327,8 @@ TXBuf[15] = 0x00;   //CH6 Low Byte
 <content type="html" xml:base="https://www.talkingquickly.co.uk/2014/06/rails-development-environment-with-vagrant-and-docker/">&lt;p&gt;Onboarding new developers to a Rails projects is still a far harder task than it should be. A big part of this is that setting up a development environment for an app or suite of apps, getting the correct ruby versions, database versions etc running locally, can in many cases take upwards of a day. A combination of Vagrant and Docker can make this a thing of the past.&lt;/p&gt;
 
 &lt;!--more--&gt;
+
+&lt;p&gt;Update April 2018 - Docker has evolved a lot since this post, &lt;a href=&quot;/2018/03/rails-development-environment-with-docker-compose/&quot;&gt;an updated approach is documented here&lt;/a&gt;&lt;/p&gt;
 
 &lt;p&gt;Vagrant alone has already gone a long way to alleviating this but with Docker we can go one step further. Not only can we have a fully functional development environment (for both new and existing devs) up in a matter of a minutes, we can use almost the same containers we create in development to deploy to production. This goes even further to avoiding the classic &amp;quot;it worked in dev&amp;quot; problem.&lt;/p&gt;
 
