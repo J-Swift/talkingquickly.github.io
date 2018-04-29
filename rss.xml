@@ -3,13 +3,49 @@
 <generator uri="http://jekyllrb.com" version="3.7.2">Jekyll</generator>
 <link href="https://www.talkingquickly.co.uk/rss.xml" rel="self" type="application/atom+xml" />
 <link href="https://www.talkingquickly.co.uk/" rel="alternate" type="text/html" />
-<updated>2018-04-18T14:17:13+00:00</updated>
+<updated>2018-04-29T17:21:34+00:00</updated>
 <id>https://www.talkingquickly.co.uk/</id>
 <title>talkingquickly</title>
 <subtitle>rails, docker, stress free deployment and small steps taken quickly</subtitle>
 <author>
 <name>Ben Dixon</name>
 </author>
+<entry>
+<title>Getting things done while staying sane</title>
+<link href="https://www.talkingquickly.co.uk/getting-things-done-while-staying-sane" rel="alternate" type="text/html" title="Getting things done while staying sane" />
+<published>2018-04-29T15:40:00+00:00</published>
+<updated>2018-04-29T15:40:00+00:00</updated>
+<id>https://www.talkingquickly.co.uk/getting-things-done-while-staying-sane</id>
+<content type="html" xml:base="https://www.talkingquickly.co.uk/getting-things-done-while-staying-sane">&lt;p&gt;These are the guidelines I aim to follow with the goal of maintaining a high output while still enjoying life and avoiding burnout. I can&amp;#39;t claim to be exceptionally good at sticking to them. As per usual, the &amp;quot;you&amp;quot; here is me, this isn&amp;#39;t advice, it&amp;#39;s just what&amp;#39;s worked for me. It&amp;#39;s definitely highly influenced by the dynamics of building technology companies and is very tailored to the quirks of my psyche, ymmv.&lt;/p&gt;
+
+&lt;!--more--&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;Be nice to people. The number of situations where anger or aggression are either warranted or productive are so close to zero that it&amp;#39;s not worth considering. The most productive way to respond to emotional or aggravating behaviour in others is generally calm empathy, it&amp;#39;s usually a misunderstanding anyway. Getting irritated over minor misunderstandings sixteen times per day is a pretty solid recipe for burnout but if you want to guarantee it, just add coffee.&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Unless you &lt;em&gt;really&lt;/em&gt; care about your point, consider not making it. Be ruthless about which things you chime in on. Maintain a very small surface area of identity and opinion. The exception to this is when debating for fun, but be very careful when doing this that you&amp;#39;re not slipping into your point becoming confused with your identity.&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Look out for opinions which become part of your identity. Have you become a &amp;quot;ruby person,&amp;quot; an &amp;quot;apple person&amp;quot; or a &amp;quot;liberal person&amp;quot;. These are the things you&amp;#39;re most likely to be wrong about in the face of overwhelming evidence. Being genuinely open minded / Bayesian in the way you form and revise opinions is truly a super-power. The exception is tabs v spaces, the answers is always spaces.  &lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Work out what your insecure about, this is where you decision making is likely to be irrational and where you&amp;#39;re most likely to fall back to dogmatic, identity based opinions rather than Bayesian decision making.&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Anything in your life which you measure by the approval or opinion of others, will be a net source of unhappiness. Your only metric should be whether your actions were the best they could be in the circumstances based on your principles. And this metric should only be relevant insofar as it allows you to improve the quality of your actions in the future. Essentially the stoics got it right. This is really, really, really hard.&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;For this to work you need principles. Think a lot about what you believe in, what you care about and what&amp;#39;s genuinely important to you. It&amp;#39;s amazingly easy to coast by without doing this.&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Watch for people who&amp;#39;s approval you seek and work out why. Generally they will have an attribute you would like to have. Rebase your focus onto your success in completing actions which progress you in attaining that attribute (e.g. things within your control). If the attribute is not acquirable or you do not actually consider those actions a good use of time, re-base your focus onto success being recognising and halting behaviour which is motivated by that approval seeking.&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;If you really believe something, the fact that others disagree should be something you learn to sit comfortably with. We are herd animals so it&amp;#39;s OK this is difficult, you&amp;#39;re fighting biology. Disagreement from somebody who&amp;#39;s opinions you generally value should prompt a re-evaluation, but you shouldn&amp;#39;t chase consensus. Disagreement by somebody who&amp;#39;s opinion you don&amp;#39;t value should be default ignored, see almost all internet arguments ever.&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Focus. Switching between tasks is at least an order of magnitude less efficient than focussing on one task at a time. It is not possible to multitask, be gracious to people who believe they can and support them when they burn out.&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;When meetings are used as precision tools, they can be very productive, unfortunately many aren&amp;#39;t and as a result are a waste of time. Try and time box meetings into specific parts of the day and the week and never go to meetings without an agenda. If you aren&amp;#39;t adding or getting value from a meeting, don&amp;#39;t sit their surreptiously looking at your phone, leave and do something productive with the time. This is not rude, it&amp;#39;s efficient.&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Deal with your meeting FOMO. If the only way that information gets to you is via constant catch ups and review meetings then the communication structures you have in place are fundamentally broken. But it&amp;#39;s more likely you&amp;#39;re just scared of letting go. Ask people to summarise outputs from meetings and then ask clarifying questions.&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Recurring meetings are particularly questionable, if you must have them, make them cancelled by default and  only keep them when an agenda exists in advance, even when there is an agenda, think carefully about whether there really needs to be a meeting for it or if it can be resolved via chat / email.&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Prioritise and pick one thing. Start ideally each week and without fail each day with one thing you want to get done. As other things come in, default to deferring or delegating them immediately. Constantly ask yourself if the thing that&amp;#39;s interrupting you is &lt;em&gt;really&lt;/em&gt; more impactful and urgent than the thing you&amp;#39;re working on. Almost everything isn&amp;#39;t as long as you&amp;#39;re doing a good job of picking the &amp;quot;one thing&amp;quot; for the day.&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;No, really one thing. If your goal is to build a prototype of x, then use technologies and a framework you know to build that thing. Building a new prototype and doing it in a new language or using a new framework for it is not doing one thing, it&amp;#39;s doing two things. You may still do both, but be clear that you&amp;#39;re doing two things and account for the resulting hit in efficiency.&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Have a plan. Ad-hoc decision making is very tiring. On at least a daily basis, have a plan for what you&amp;#39;re going to do, generally this should be driven by a weekly and possibly monthly plan, which themselves should be tightly focussed. Be annoyingly stubborn about deviating from that plan. When you do deviate, make a new plan and then stick to that. Whatever you do, do not allow an interruption to push you into ad-hoc, unstructured time.&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Your plan should include switching off, time for friends and family and things outside of work. Be especially stubborn about deviating from this part of the plan. This doesn&amp;#39;t mean agendas for date night, it means not skipping date night to focus on upgrading Gitlab or writing revision one thousand nine hundred and sixty three of that blog post.&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;You will always encounter some people who believe it&amp;#39;s a sign of weakness not to immediately cancel any personal plans for work. These people will always be a net negative both in life overall and in the success of a business venture. Be polite but unwavering in making your position on this clear and if necessary excluding them from anything you are involved with. If you aren&amp;#39;t in a position to do this, consider leaving, &amp;quot;first in last out, nothing else matters&amp;quot; driven cultures are toxic and will eventually implode anyway.&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Your plan should be realistic, any plan which regularly requires you to; sleep less than 8 hours, skip meditation or exercise or heavily reduce time with family and loved ones will fail.&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Be aware of crunch time. Whether it&amp;#39;s shipping a feature, raising money or managing a project which has gone off the rails, sometimes there will be a defined period where all energy and then some has to be diverted to one thing. Recognise that you&amp;#39;re depleting a finite store during these periods due to lack of sleep, exercise and downtime and that the further you or anyone else gets into this period, the less rational decision making will become and the lower the return on each additional hour worked will be. Give yourself and others you&amp;#39;re responsible for time to re-charge afterwards.&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Make lists, lots of lists. The worse place to keep everything except hats and sunglasses is your head.&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Drink lots of water, avoid caffeine and remember that cheap wine with awesome people will always taste better than a fancy vintage without them.&lt;/p&gt;&lt;/li&gt;
+&lt;/ol&gt;
+</content>
+<summary>These are the guidelines I aim to follow with the goal of maintaining a high output while still enjoying life and avoiding burnout. I can&amp;#39;t claim to be exceptionally good at sticking to them. As per usual, the &amp;quot;you&amp;quot; here is me, this isn&amp;#39;t advice, it&amp;#39;s just what&amp;#39;s worked for me. It&amp;#39;s definitely highly influenced by the dynamics of building technology companies and is very tailored to the quirks of my psyche, ymmv.</summary>
+</entry>
 <entry>
 <title>A Rails development environment with Docker</title>
 <link href="https://www.talkingquickly.co.uk/2018/03/rails-development-environment-with-docker-compose/" rel="alternate" type="text/html" title="A Rails development environment with Docker" />
@@ -1690,106 +1726,5 @@ bundle &lt;span class=&quot;nb&quot;&gt;exec&lt;/span&gt; unicorn -p &lt;span cl
 &lt;/ul&gt;
 </content>
 <summary>Onboarding new developers to a Rails projects is still a far harder task than it should be. A big part of this is that setting up a development environment for an app or suite of apps, getting the correct ruby versions, database versions etc running locally, can in many cases take upwards of a day. A combination of Vagrant and Docker can make this a thing of the past.</summary>
-</entry>
-<entry>
-<title>DNSimple SSL Certificates and NGinx</title>
-<link href="https://www.talkingquickly.co.uk/2014/05/dnsimple-ssl-certificates-nginx/" rel="alternate" type="text/html" title="DNSimple SSL Certificates and NGinx" />
-<published>2014-05-12T12:00:00+00:00</published>
-<updated>2014-05-12T12:00:00+00:00</updated>
-<id>https://www.talkingquickly.co.uk/2014/05/dnsimple-ssl-certificates-nginx</id>
-<content type="html" xml:base="https://www.talkingquickly.co.uk/2014/05/dnsimple-ssl-certificates-nginx/">&lt;p&gt;If you purchase a Geotrust SSL Certificate from DNSimple for your domain, there&amp;#39;s a small amount of setup required to get the certificate in a format you can use with Nginx. This post includes an overview of the process and a simple bash script to automate it.&lt;/p&gt;
-
-&lt;!--more--&gt;
-
-&lt;p&gt;You&amp;#39;ll have three certificate files:&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;Your Certificate&lt;/li&gt;
-&lt;li&gt;Primary Intermediate CA&lt;/li&gt;
-&lt;li&gt;Secondary Intermediate CA&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;p&gt;These have to be concatinated into one file in the order:&lt;/p&gt;
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;YOUR CERTIFICATE
-SECONDARY INTERMEDIATE CA
-PRIMARY INTERMEDIATE CA
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;p&gt;E.g:&lt;/p&gt;
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;cat my.crt secondary.crt primary.crt &amp;gt; ssl_cert.crt
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;p&gt;Start with 4 files:&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;my.crt&lt;/li&gt;
-&lt;li&gt;secondary.crt&lt;/li&gt;
-&lt;li&gt;primary.crt&lt;/li&gt;
-&lt;li&gt;ssl_private_key.key.new&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;p&gt;Assuming your destination files are &lt;code&gt;ssl_cert.crt&lt;/code&gt; and &lt;code&gt;ssl_private_key.key&lt;/code&gt;&lt;/p&gt;
-
-&lt;p&gt;The following bash script provides a simple interface for switching in new certs and rolling back in the case that something goes wrong. The script should be stored in the same directory as the target for the certificates. In the case of our sample configuration, this is &lt;code&gt;/home/deploy/your_app_environment/shared/&lt;/code&gt;.&lt;/p&gt;
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span&gt;&lt;/span&gt;&lt;span class=&quot;ch&quot;&gt;#!/bin/bash&lt;/span&gt;
-
-&lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;$#&lt;/span&gt; -lt &lt;span class=&quot;m&quot;&gt;1&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;
-&lt;span class=&quot;k&quot;&gt;then&lt;/span&gt;
-        &lt;span class=&quot;nb&quot;&gt;echo&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;Usage : &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$0&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt; command&amp;quot;&lt;/span&gt;
-        &lt;span class=&quot;nb&quot;&gt;echo&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;Expects: my.crt, secondary.crt, primary.crt, ssl_private_key.key.new&amp;quot;&lt;/span&gt;
-        &lt;span class=&quot;nb&quot;&gt;echo&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;Commands:&amp;quot;&lt;/span&gt;
-        &lt;span class=&quot;nb&quot;&gt;echo&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;load_new_certs&amp;quot;&lt;/span&gt;
-        &lt;span class=&quot;nb&quot;&gt;echo&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;rollback_certs&amp;quot;&lt;/span&gt;
-        &lt;span class=&quot;nb&quot;&gt;echo&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;cleanup_certs&amp;quot;&lt;/span&gt;
-        &lt;span class=&quot;nb&quot;&gt;exit&lt;/span&gt;
-&lt;span class=&quot;k&quot;&gt;fi&lt;/span&gt;
-
-&lt;span class=&quot;k&quot;&gt;case&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$1&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&amp;quot;&lt;/span&gt; in
-
-load_new_certs&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;  &lt;span class=&quot;nb&quot;&gt;echo&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;Copying New Certs&amp;quot;&lt;/span&gt;
-    cat my.crt secondary.crt primary.crt &amp;gt; ssl_cert.crt.new
-
-    mv ssl_cert.crt ssl_cert.crt.old
-    mv ssl_cert.crt.new ssl_cert.crt
-
-    mv ssl_private_key.key ssl_private_key.key.old
-    mv ssl_private_key.key.new ssl_private_key.key
-
-    sudo service nginx reload
-    &lt;span class=&quot;p&quot;&gt;;;&lt;/span&gt;
-rollback_certs&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;  &lt;span class=&quot;nb&quot;&gt;echo&lt;/span&gt;  &lt;span class=&quot;s2&quot;&gt;&amp;quot;Rolling Back to Old Certs&amp;quot;&lt;/span&gt;
-    mv ssl_cert.crt ssl_cert.crt.new
-    mv ssl_cert.crt.old ssl_cert.crt
-
-    mv ssl_private_key.key ssl_private_key.key.new
-    mv ssl_private_key.key.old ssl_private_key.key
-
-    sudo service nginx reload
-    &lt;span class=&quot;p&quot;&gt;;;&lt;/span&gt;
-cleanup_certs&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;  &lt;span class=&quot;nb&quot;&gt;echo&lt;/span&gt;  &lt;span class=&quot;s2&quot;&gt;&amp;quot;Cleaning Up Temporary Files&amp;quot;&lt;/span&gt;
-    rm ssl_cert.crt.old
-    rm ssl_private_key.key.old
-    rm my.crt
-    rm secondary.crt
-    rm primary.crt
-    &lt;span class=&quot;p&quot;&gt;;;&lt;/span&gt;
-*&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;echo&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;Command not known&amp;quot;&lt;/span&gt;
-   &lt;span class=&quot;p&quot;&gt;;;&lt;/span&gt;
-&lt;span class=&quot;k&quot;&gt;esac&lt;/span&gt;
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;p&gt;Don&amp;#39;t forget to make the script executable with &lt;code&gt;chmod +x script_name.sh&lt;/code&gt;.&lt;/p&gt;
-
-&lt;p&gt;You can then simply run:&lt;/p&gt;
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span&gt;&lt;/span&gt;./script_name load_new_certs
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;p&gt;to swap in the new certificates and reload nginx. If, after testing the site, something isn&amp;#39;t right, you can execute:&lt;/p&gt;
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span&gt;&lt;/span&gt;./script_name rollback_certs
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;p&gt;To revert to the previous ones. And then repeat &lt;code&gt;load_new_certs&lt;/code&gt; once you&amp;#39;ve resolved the issue.&lt;/p&gt;
-
-&lt;p&gt;Once you have the new certificates working as intended, you can use:&lt;/p&gt;
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span&gt;&lt;/span&gt;./script_name cleanup_certs
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;p&gt;To remove the temporary and legacy files created.&lt;/p&gt;
-</content>
-<summary>If you purchase a Geotrust SSL Certificate from DNSimple for your domain, there&amp;#39;s a small amount of setup required to get the certificate in a format you can use with Nginx. This post includes an overview of the process and a simple bash script to automate it.</summary>
 </entry>
 </feed>
