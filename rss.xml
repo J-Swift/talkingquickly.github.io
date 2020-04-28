@@ -3,13 +3,48 @@
 <generator uri="http://jekyllrb.com" version="3.7.2">Jekyll</generator>
 <link href="https://www.talkingquickly.co.uk/rss.xml" rel="self" type="application/atom+xml" />
 <link href="https://www.talkingquickly.co.uk/" rel="alternate" type="text/html" />
-<updated>2019-09-01T12:04:52+00:00</updated>
+<updated>2020-04-28T12:05:37+00:00</updated>
 <id>https://www.talkingquickly.co.uk/</id>
 <title>talkingquickly</title>
-<subtitle>rails, docker, stress free deployment and small steps taken quickly</subtitle>
+<subtitle>kubernetes, rails, stress free deployment and small steps taken quickly</subtitle>
 <author>
 <name>Ben Dixon</name>
 </author>
+<entry>
+<title>Cloudformation - NodeGroup failed to stabilize: Internal Failure</title>
+<link href="https://www.talkingquickly.co.uk/2020/04/nodegroup-failed-to-stabilize-internal-failure/" rel="alternate" type="text/html" title="Cloudformation - NodeGroup failed to stabilize: Internal Failure" />
+<published>2020-04-28T09:00:00+00:00</published>
+<updated>2020-04-28T09:00:00+00:00</updated>
+<id>https://www.talkingquickly.co.uk/2020/04/nodegroup-failed-to-stabilize-internal-failure</id>
+<content type="html" xml:base="https://www.talkingquickly.co.uk/2020/04/nodegroup-failed-to-stabilize-internal-failure/">&lt;p&gt;A recent change to AWS NodeGroup behaviour means that some CloudFormation stacks which create EKS NodeGroups may start to fail with the error &lt;code&gt;Nodegroup the-nodegroup-name failed to stabilize: Internal Failure&lt;/code&gt;. Googling currently doesn&amp;#39;t return much. The problem is related to &lt;a href=&quot;https://aws.amazon.com/blogs/containers/upcoming-changes-to-ip-assignment-for-eks-managed-node-groups/&quot;&gt;this change&lt;/a&gt; relating to whether or not public IP&amp;#39;s are assigned to nodes.&lt;/p&gt;
+
+&lt;!--more--&gt;
+
+&lt;p&gt;Prior to April 22nd, managed node groups always assign public IP&amp;#39;s to nodes, irrespective of the value of &lt;code&gt;MapPublicIpOnLaunch&lt;/code&gt; on the associated subnet. Going forward public IP&amp;#39;s will only be assigned if &lt;code&gt;MapPublicIpOnLaunch&lt;/code&gt; is &lt;code&gt;true&lt;/code&gt; on the associated subnet.&lt;/p&gt;
+
+&lt;p&gt;So if creating the subnet via Cloudformation, we previously had:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;Subnet1a:
+  Type: AWS::EC2::Subnet
+  Properties:
+    VpcId: !Ref VPC
+    AvailabilityZone:
+      Fn::Sub: &amp;#39;${Region}a&amp;#39;
+    CidrBlock: 172.16.0.0/18
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;We would now need to add the final line as below:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;Subnet1a:
+  Type: AWS::EC2::Subnet
+  Properties:
+    VpcId: !Ref VPC
+    AvailabilityZone:
+      Fn::Sub: &amp;#39;${Region}a&amp;#39;
+    CidrBlock: 172.16.0.0/18
+    MapPublicIpOnLaunch: true
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;For our existing configuration to continue working. More info is &lt;a href=&quot;https://aws.amazon.com/blogs/containers/upcoming-changes-to-ip-assignment-for-eks-managed-node-groups/&quot;&gt;in the AWS post&lt;/a&gt;&lt;/p&gt;
+</content>
+<summary>A recent change to AWS NodeGroup behaviour means that some CloudFormation stacks which create EKS NodeGroups may start to fail with the error Nodegroup the-nodegroup-name failed to stabilize: Internal Failure. Googling currently doesn&amp;#39;t return much. The problem is related to this change relating to whether or not public IP&amp;#39;s are assigned to nodes.</summary>
+</entry>
 <entry>
 <title>90 Days of Learning</title>
 <link href="https://www.talkingquickly.co.uk/ninety-days-of-learning" rel="alternate" type="text/html" title="90 Days of Learning" />
@@ -1110,139 +1145,5 @@ TXBuf[15] = 0x00;   //CH6 Low Byte
 &lt;p&gt;This presentation &lt;a href=&quot;http://www.slhn.org/docs/pdf/prehosp-drkasarda1.pdf&quot;&gt;http://www.slhn.org/docs/pdf/prehosp-drkasarda1.pdf&lt;/a&gt; is useful for getting a feel for roughly how an EKG works and what each part of the waveform represents.&lt;/p&gt;
 </content>
 <summary>An EKG (electrocardiogram) - also referred to as an ECG - is a recording of the electrical activity of the heart. This can be used for measuring the rate and regularity of heart beats. Using a readily available Arduino shield, an Arduino and a $10 set of electrodes, it&amp;#39;s possible to generate this waveform at home and then manipulate and plot it in realtime using Javascript.</summary>
-</entry>
-<entry>
-<title>Google Cardboard Unity Tutorial</title>
-<link href="https://www.talkingquickly.co.uk/2014/11/google-cardboard-unity-tutorial/" rel="alternate" type="text/html" title="Google Cardboard Unity Tutorial" />
-<published>2014-11-09T19:36:00+00:00</published>
-<updated>2014-11-09T19:36:00+00:00</updated>
-<id>https://www.talkingquickly.co.uk/2014/11/google-cardboard-unity-tutorial</id>
-<content type="html" xml:base="https://www.talkingquickly.co.uk/2014/11/google-cardboard-unity-tutorial/">&lt;p&gt;Having tried the Oculus I&amp;#39;d prepared myself to be completely unimpressed by Google&amp;#39;s $2 VR solution. But after trying Roller Coaster VR I was blown away by how well the slightly shabby looking cardboard assembly performed. Naturally despite never have tried any game development or 3D modeling, I wanted to make stuff for it. Using Unity and some plugins, this turned out to be surprisingly easy. This tutorial covers the bare minimum needed to go from never having used Unity before, to a simple 3D environment you can look around using Google Cardboard.&lt;/p&gt;
-
-&lt;!--more--&gt;
-
-&lt;h2&gt;Prerequisites&lt;/h2&gt;
-
-&lt;ul&gt;
-&lt;li&gt;Latest version of Unity (&lt;a href=&quot;http://unity3d.com/unity/download&quot;&gt;http://unity3d.com/unity/download&lt;/a&gt;)&lt;/li&gt;
-&lt;li&gt;Google Cardboard (&lt;a href=&quot;https://cardboard.withgoogle.com/&quot;&gt;https://cardboard.withgoogle.com/&lt;/a&gt;) I got mine from Amazon, there are manufacturers springing up all over the world&lt;/li&gt;
-&lt;li&gt;The Android SDK (&lt;a href=&quot;https://developer.android.com/sdk/index.html?hl=i&quot;&gt;https://developer.android.com/sdk/index.html?hl=i&lt;/a&gt;). This assumes you want to build and run on the Android platform. This tutorial will work with iOS but the build process at the end will be different.&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;h2&gt;Get Setup with Unity&lt;/h2&gt;
-
-&lt;p&gt;The first step has nothing to do with Google Cardboard, we just need to get a simple 3D environment created within Unity with a character who can move around and interact with it.&lt;/p&gt;
-
-&lt;p&gt;No point in re-inventing the wheel here, this excellent tutorial gets you up and running with such an environment in about 12 minutes: &lt;a href=&quot;https://www.youtube.com/watch?v=fRED_-LvJKQ&amp;list=PLPV2KyIb3jR7F_B4p8X3YwHPaExh0R9Kk&quot;&gt;https://www.youtube.com/watch?v=fRED_-LvJKQ&amp;amp;list=PLPV2KyIb3jR7F_B4p8X3YwHPaExh0R9Kk&lt;/a&gt;.&lt;/p&gt;
-
-&lt;p&gt;That entire series of tutorials is a really accessible introduction to Unity so I&amp;#39;d recommend coming back to the remaining ones later on. Each one is recorded as a single take so sometimes the author makes mistakes he goes back and fixes later on. I made the mistake several times of pausing the video when I saw an error and spending ages trying to fix it myself, only to find out that he explains how to resolve it immediately afterwards.&lt;/p&gt;
-
-&lt;p&gt;Once you&amp;#39;ve completed that tutorial, continue below to add Google Cardboard integration.&lt;/p&gt;
-
-&lt;h2&gt;One Camera for Each Eye&lt;/h2&gt;
-
-&lt;p&gt;At the moment our game window looks something like this:&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&quot;/assets/images/unity_cardboard_tutorial/single_camera.png&quot; alt=&quot;Single Camera&quot;&gt;&lt;/p&gt;
-
-&lt;p&gt;We have a single camera, some simple 3D shapes and a point light source. The camera is attached to the player which can be moved around with the arrow keys.&lt;/p&gt;
-
-&lt;p&gt;For this to work with Google cardboard, we need to add a second camera, so we have one for each eye and set these up to be offset from the center of the viewport by equal amounts.&lt;/p&gt;
-
-&lt;p&gt;Begin by renaming the existing camera (mine was called &amp;quot;MainCamera&amp;quot;) to &amp;quot;LeftCamera&amp;quot; and then in the inspector, changing the following values:&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;Position X : -1&lt;/li&gt;
-&lt;li&gt;Field of View : 60&lt;/li&gt;
-&lt;li&gt;Viewport Rect W : 0.5&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;p&gt;This should give you a game screen similar to before but filling only half of the viewport:&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&quot;/assets/images/unity_cardboard_tutorial/half_viewport.png&quot; alt=&quot;Half Viewport Camera&quot;&gt;&lt;/p&gt;
-
-&lt;p&gt;Now right click on &amp;quot;LeftCamera&amp;quot; in the Hierarchy and choose Duplicate. Rename the newly duplicated &amp;quot;LeftCamera&amp;quot; to &amp;quot;RightCamera&amp;quot;.&lt;/p&gt;
-
-&lt;p&gt;Then in the inspector for RightCamera, change the following values:&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;Position X : 1&lt;/li&gt;
-&lt;li&gt;Viewport Rect X : 0.5&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;p&gt;This should give you a viewport which is split down the middle, with one camera for each eye:&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&quot;/assets/images/unity_cardboard_tutorial/two_cameras.png&quot; alt=&quot;Two Cameras&quot;&gt;&lt;/p&gt;
-
-&lt;p&gt;If you were to load this onto a device now and look at it through Cardboard, it would work. But you wouldn&amp;#39;t be able to look around so it wouldn&amp;#39;t be that interesting.&lt;/p&gt;
-
-&lt;h2&gt;Adding Head Tracking&lt;/h2&gt;
-
-&lt;p&gt;One of the biggest challenges with Google Cardboard is that the only forms of user input are head movement and a magnet based switch on the side. The most impressive is the head tracking which uses the Gyroscope to detect exactly where the user is looking.&lt;/p&gt;
-
-&lt;p&gt;This would be quite challenging to implement smoothly from scratch but luckily the clever folk at Durovis have created a Unity plugin which will take care of it for us.&lt;/p&gt;
-
-&lt;p&gt;Begin by downloading the plugin from &lt;a href=&quot;https://www.durovis.com/sdk.html&quot;&gt;https://www.durovis.com/sdk.html&lt;/a&gt; and double clicking on the &lt;code&gt;.unitypackage&lt;/code&gt; file once it&amp;#39;s finished downloading. This should automatically open the Unity import dialog.&lt;/p&gt;
-
-&lt;p&gt;Don&amp;#39;t change any options on the import window and just click &amp;quot;Import&amp;quot;. You may see an error about not having Blender installed at this point, for now this can be ignored.&lt;/p&gt;
-
-&lt;p&gt;Now select the &amp;quot;Player&amp;quot; in the Hierarchy (the parent object to your two cameras) and in the Inspector click &amp;quot;Add Component&amp;quot; at the bottom.&lt;/p&gt;
-
-&lt;p&gt;Select &amp;quot;Scripts&amp;quot; and then &amp;quot;Open Dive Sensor&amp;quot;. You&amp;#39;ll then see a pane for configuring the Open Dive Sensor.&lt;/p&gt;
-
-&lt;p&gt;There are two attributes which need setting here:&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;Cameraleft&lt;/li&gt;
-&lt;li&gt;Cameraright&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;p&gt;Which are shown below:&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&quot;/assets/images/unity_cardboard_tutorial/open_dive_before_adding_cameras.png&quot; alt=&quot;Configuring Open Dive Sensor&quot;&gt;&lt;/p&gt;
-
-&lt;p&gt;Click the button to the far right of Cameraleft (see the arrow in the screenshot above) and in the dialog which comes up choose &amp;quot;LeftCamera&amp;quot; by double clicking on it. Repeat the process for Cameraright, choosing &amp;quot;RightCamera&amp;quot; in the dialog.&lt;/p&gt;
-
-&lt;p&gt;If you select play now and look at the game window, notice that there is distortion added to correct for the lenses in Google Cardboard:&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&quot;/assets/images/unity_cardboard_tutorial/with_open_dive_distortion.png&quot; alt=&quot;Configuring Open Dive Sensor&quot;&gt;&lt;/p&gt;
-
-&lt;h2&gt;Trying it out&lt;/h2&gt;
-
-&lt;p&gt;We&amp;#39;re now ready to test the scene with Cardboard.&lt;/p&gt;
-
-&lt;p&gt;Begin by selecting &amp;quot;File&amp;quot; and then &amp;quot;Build Settings&amp;quot;. Add our current Scene to the Build by clicking the &amp;quot;Add Current&amp;quot; button (middle right).&lt;/p&gt;
-
-&lt;p&gt;Under Platform select &amp;quot;Android&amp;quot;. Make sure your Android device is plugged into the computer using a USB cable and that USB Debugging is enabled (this varies between Android devices but a quick Google Search should do the trick).&lt;/p&gt;
-
-&lt;p&gt;Having selected Android, click on &amp;quot;Player Settings&amp;quot; which will load the settings in the Inspector window. Under &amp;quot;Other&amp;quot; you&amp;#39;ll need to enter a bundle identifier:&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&quot;/assets/images/unity_cardboard_tutorial/android_bundle_identifier.png&quot; alt=&quot;Adding a bundle identifier&quot;&gt;&lt;/p&gt;
-
-&lt;p&gt;Now choose &amp;quot;Build and Run&amp;quot; and wait for the build process to complete. When asked for a file location initially, choose somewhere to store the generated APK (Android Installer). This file can be copied to you device for installing manually or sent to friends.&lt;/p&gt;
-
-&lt;p&gt;At some point it will also ask you for the location of the Android SDK. Because everyone read the &amp;quot;prerequisites&amp;quot; section of this post, this will already been downloaded and extracted somewhere (or not!).&lt;/p&gt;
-
-&lt;p&gt;I&amp;#39;d downloaded and extracted this in my &lt;code&gt;~/Downloads&lt;/code&gt; folder so the SDK was located in &lt;code&gt;~/Downloads/adt-bundle-mac-x86_64-20140702/sdk&lt;/code&gt;.&lt;/p&gt;
-
-&lt;p&gt;Once the process completes, the application should automatically launch on your device. Slot it into Google Cardboard and look around!&lt;/p&gt;
-
-&lt;p&gt;The next big challenge is finding a way to get user input. The magnetic button is clever but hardly that useful for fine grained directional control and expecting people to have a gamepad available is unreasonable.&lt;/p&gt;
-
-&lt;p&gt;My current thinking is to allow a computers arrow keys to be used as input via web sockets, or eventually hand gestures recognised by the camera.&lt;/p&gt;
-
-&lt;p&gt;Any questions or comments, find me on twitter, &lt;a href=&quot;http://www.twitter.com/talkingquickly&quot;&gt;http://www.twitter.com/talkingquickly&lt;/a&gt;.&lt;/p&gt;
-
-&lt;h2&gt;References&lt;/h2&gt;
-
-&lt;p&gt;&lt;a href=&quot;http://www.sc0ttgames.com/?p=293&quot;&gt;http://www.sc0ttgames.com/?p=293&lt;/a&gt;&lt;/p&gt;
-
-&lt;p&gt;&lt;a href=&quot;https://www.youtube.com/watch?v=fRED_-LvJKQ&amp;list=PLPV2KyIb3jR7F_B4p8X3YwHPaExh0R9Kk&quot;&gt;https://www.youtube.com/watch?v=fRED_-LvJKQ&amp;amp;list=PLPV2KyIb3jR7F_B4p8X3YwHPaExh0R9Kk&lt;/a&gt;&lt;/p&gt;
-
-&lt;p&gt;&lt;a href=&quot;https://www.durovis.com/board/viewforum.php?f=1&amp;sid=a3e36bc84f5e3e70f7bb00c9b11af7a2&quot;&gt;https://www.durovis.com/board/viewforum.php?f=1&amp;amp;sid=a3e36bc84f5e3e70f7bb00c9b11af7a2&lt;/a&gt;&lt;/p&gt;
-
-&lt;p&gt;&lt;a href=&quot;http://forum.unity3d.com/threads/cardboard-vr-by-google-for-android-only-45.253903/&quot;&gt;http://forum.unity3d.com/threads/cardboard-vr-by-google-for-android-only-45.253903/&lt;/a&gt;&lt;/p&gt;
-</content>
-<summary>Having tried the Oculus I&amp;#39;d prepared myself to be completely unimpressed by Google&amp;#39;s $2 VR solution. But after trying Roller Coaster VR I was blown away by how well the slightly shabby looking cardboard assembly performed. Naturally despite never have tried any game development or 3D modeling, I wanted to make stuff for it. Using Unity and some plugins, this turned out to be surprisingly easy. This tutorial covers the bare minimum needed to go from never having used Unity before, to a simple 3D environment you can look around using Google Cardboard.</summary>
 </entry>
 </feed>

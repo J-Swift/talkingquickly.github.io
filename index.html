@@ -6,7 +6,7 @@
 
     <title>Talking Quickly - Rails, Devops & Startups</title>
     
-        <meta name="description" content="Blog by Ben Dixon, Ruby on Rails Developer, about rails, devops, docker, climbing and startups" />
+        <meta name="description" content="Blog by Ben Dixon, Ruby on Rails Developer, about rails, kubernetes, docker, climbing and startups" />
     
 
 
@@ -22,8 +22,8 @@
     <link rel="stylesheet" type="text/css" href="/assets/css/syntax.css">
     <!-- Customisation  -->
     <link rel="stylesheet" type="text/css" href="/assets/css/main.css" />
-    <link rel="alternate" type="application/rss+xml" title="RubyFlow"
-    href="/rss.xml"/>
+    <link rel="alternate" type="application/rss+xml" title="RSS" href="/rss.xml"/>
+    <link rel="canonical" href="https://www.talkingquickly.co.uk/">
 
 </head>
 <body class="home-template">
@@ -35,7 +35,7 @@
             
             <h1 class="blog-title">talkingquickly</h1>
             <h2 class="blog-description">
-               rails, docker, stress free deployment and small steps taken quickly
+               kubernetes, rails, stress free deployment and small steps taken quickly
             </h2>
             <h2 class="blog-description">
                  <a href='about.html'> About me</a> 
@@ -51,6 +51,20 @@
 </header>
 
 <main class="content" role="main">
+
+    
+
+    <article class="post">
+        <header class="post-header">
+            <span class="post-meta"><time datetime="28 Apr 2020">28 Apr 2020</time></span>
+            <h2 class="post-title"><a href="/2020/04/nodegroup-failed-to-stabilize-internal-failure/">Cloudformation - NodeGroup failed to stabilize: Internal Failure</a></h2>
+
+        </header>
+        <section class="post-excerpt">
+            <p><p>A recent change to AWS NodeGroup behaviour means that some CloudFormation stacks which create EKS NodeGroups may start to fail with the error <code>Nodegroup the-nodegroup-name failed to stabilize: Internal Failure</code>. Googling currently doesn&#39;t return much. The problem is related to <a href="https://aws.amazon.com/blogs/containers/upcoming-changes-to-ip-assignment-for-eks-managed-node-groups/">this change</a> relating to whether or not public IP&#39;s are assigned to nodes.</p>
+</p>
+        </section>
+    </article>
 
     
 
@@ -244,20 +258,6 @@
         </header>
         <section class="post-excerpt">
             <p><p>When deploying with Capistrano 3, it&#39;s often useful to be able to start a rails console without having to ssh into the target host and set it up manually. This can be particularly challenging if you&#39;re using rbenv as you have to ensure that <code>rails console</code> is called with suitable environment variables set set to ensure that the rbenv Ruby is used not the system Ruby.</p>
-</p>
-        </section>
-    </article>
-
-    
-
-    <article class="post">
-        <header class="post-header">
-            <span class="post-meta"><time datetime="13 Mar 2014">13 Mar 2014</time></span>
-            <h2 class="post-title"><a href="/2014/03/reading-git-merge-conficts/">Reading Git Merge Conflicts</a></h2>
-
-        </header>
-        <section class="post-excerpt">
-            <p><p>Git merge conflicts are something any developer who works in a team bigger than one, has to deal with from time to time. It&#39;s surprisingly common it seems to deal with these without really understanding what&#39;s going, I did for years and I know many others who still are.</p>
 </p>
         </section>
     </article>
