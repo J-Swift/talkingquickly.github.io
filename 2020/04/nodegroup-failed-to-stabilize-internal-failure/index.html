@@ -72,6 +72,8 @@
 </code></pre></div>
 <p>For our existing configuration to continue working. More info is <a href="https://aws.amazon.com/blogs/containers/upcoming-changes-to-ip-assignment-for-eks-managed-node-groups/">in the AWS post</a></p>
 
+<p>The trick to debugging turned out to be setting <code>disable_rollback</code> to <code>true</code> (if using Ansible to manage Cloudformation) so that the NodeGroup wasn&#39;t deleted on failure making it possible to go in and inspect the NodeGroup.</p>
+
         </section>
 
         

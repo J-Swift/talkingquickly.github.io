@@ -3,7 +3,7 @@
 <generator uri="http://jekyllrb.com" version="3.7.2">Jekyll</generator>
 <link href="https://www.talkingquickly.co.uk/rss.xml" rel="self" type="application/atom+xml" />
 <link href="https://www.talkingquickly.co.uk/" rel="alternate" type="text/html" />
-<updated>2020-04-28T12:05:37+00:00</updated>
+<updated>2020-04-28T12:17:53+00:00</updated>
 <id>https://www.talkingquickly.co.uk/</id>
 <title>talkingquickly</title>
 <subtitle>kubernetes, rails, stress free deployment and small steps taken quickly</subtitle>
@@ -42,6 +42,8 @@
     MapPublicIpOnLaunch: true
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;For our existing configuration to continue working. More info is &lt;a href=&quot;https://aws.amazon.com/blogs/containers/upcoming-changes-to-ip-assignment-for-eks-managed-node-groups/&quot;&gt;in the AWS post&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;The trick to debugging turned out to be setting &lt;code&gt;disable_rollback&lt;/code&gt; to &lt;code&gt;true&lt;/code&gt; (if using Ansible to manage Cloudformation) so that the NodeGroup wasn&amp;#39;t deleted on failure making it possible to go in and inspect the NodeGroup.&lt;/p&gt;
 </content>
 <summary>A recent change to AWS NodeGroup behaviour means that some CloudFormation stacks which create EKS NodeGroups may start to fail with the error Nodegroup the-nodegroup-name failed to stabilize: Internal Failure. Googling currently doesn&amp;#39;t return much. The problem is related to this change relating to whether or not public IP&amp;#39;s are assigned to nodes.</summary>
 </entry>
