@@ -1,0 +1,17 @@
+version: "3"
+services:
+  app:
+    build: .
+    command: jekyll serve --host=0.0.0.0 --force_polling --incremental --drafts
+    volumes:
+      - .:/home/deploy/app:delegated
+    ports:
+      - "4000:4000"
+
+  shell:
+    build: .
+    command: bash
+    volumes:
+      - .:/home/deploy/app:delegated
+      - /Users/ben/.ssh:/home/deploy/.ssh
+      - ../talkingquickly.github.io.release:/home/deploy/release

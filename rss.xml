@@ -1,0 +1,1320 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+<generator uri="http://jekyllrb.com" version="3.7.2">Jekyll</generator>
+<link href="https://www.talkingquickly.co.uk/rss.xml" rel="self" type="application/atom+xml" />
+<link href="https://www.talkingquickly.co.uk/" rel="alternate" type="text/html" />
+<updated>2021-01-03T01:53:58+00:00</updated>
+<id>https://www.talkingquickly.co.uk/</id>
+<title>talkingquickly</title>
+<subtitle>kubernetes, rails, stress free deployment and small steps taken quickly</subtitle>
+<author>
+<name>Ben Dixon</name>
+</author>
+<entry>
+<title>Automating MacOS Development setup with Ansible</title>
+<link href="https://www.talkingquickly.co.uk/2021/01/macos-setup-with-ansible/" rel="alternate" type="text/html" title="Automating MacOS Development setup with Ansible" />
+<published>2021-01-01T09:00:00+00:00</published>
+<updated>2021-01-01T09:00:00+00:00</updated>
+<id>https://www.talkingquickly.co.uk/2021/01/macos-setup-with-ansible</id>
+<content type="html" xml:base="https://www.talkingquickly.co.uk/2021/01/macos-setup-with-ansible/">&lt;p&gt;Manual repetitive tasks are my nemesis and setting up a new Macbook from scratch is a prime example of this. Using Ansible we can completely automate this process. This is valuable both for individual efficiency and for facilitating standardised &amp;quot;team setups&amp;quot; so that new joiners avoid spending their first days googling obscure node version errors.&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&quot;https://www.ansible.com&quot;&gt;Ansible&lt;/a&gt; is a tool most commonly associated with the setup of servers and infrastructure. But more broadly it&amp;#39;s an excellent tool for automating the setup of any computer, including laptops and workstations. Of all the configuration management tools out there it&amp;#39;s by far the easiest one to use - requiring no devops background at all - and has an amazing community supporting it.&lt;/p&gt;
+
+&lt;p&gt;This posts outlines the setup I&amp;#39;ve evolved over the previous few years which means setting up a new Macbook pro for fairly broad development (Rails, Javascript, Elixir, Python, Android &amp;amp; iOS) now takes just a couple of commands. This includes loading all my shell customisations and GUI apps like Chrome, Office, Virtualbox etc.&lt;/p&gt;
+
+&lt;!--more--&gt;
+
+&lt;p&gt;{% raw %}&lt;/p&gt;
+
+&lt;p&gt;The repository for this post is here; &lt;a href=&quot;https://github.com/TalkingQuickly/ansible-osx-setup&quot;&gt;https://github.com/TalkingQuickly/ansible-osx-setup&lt;/a&gt;. It&amp;#39;s structured to be simple to understand and work with for inexperienced Ansible users.&lt;/p&gt;
+
+&lt;h2&gt;tldr;&lt;/h2&gt;
+
+&lt;p&gt;If you&amp;#39;re a &amp;quot;tear open the box and throw away the instructions&amp;quot; type then I salute you, here&amp;#39;s how to get started quickly:&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;Clone the repo with &lt;code&gt;git clone https://github.com/TalkingQuickly/ansible-osx-setup&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;Switch to the cloned repo &lt;code&gt;cd ansible-osx-setup&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;Run &lt;code&gt;bin/bootstrap&lt;/code&gt; &lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;When asked, provide your &lt;code&gt;sudo&lt;/code&gt; password, make a cup of tea and wait for everything to install.&lt;/p&gt;
+
+&lt;p&gt;If executing a random shell script from someone on the internet you&amp;#39;ve never met then giving it your sudo password un-nerves you (it should!) then read on for what it does, how it works and how to customise it.&lt;/p&gt;
+
+&lt;h2&gt;What are we setting up&lt;/h2&gt;
+
+&lt;p&gt;The core components we are setting up with this automation are:&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;ZSH + Oh My Zsh as the primary shell&lt;/li&gt;
+&lt;li&gt;Homebrew for package management&lt;/li&gt;
+&lt;li&gt;ASDF for version management (along with plugins and default versions for ruby, python, javascript, elixir and erlang, this replaces using individual tools for ruby, node, python etc)&lt;/li&gt;
+&lt;li&gt;Virtualbox, Vagrant and Docker&lt;/li&gt;
+&lt;li&gt;VSCode + default plugins and configuration&lt;/li&gt;
+&lt;li&gt;Command line tools for interacting with Kubernetes clusters (helm, kubectl, kubectx, kubens)&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h2&gt;Reading the playbook &amp;amp; Customising&lt;/h2&gt;
+
+&lt;p&gt;Begin by cloning the repo;&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;git clone git@github.com:TalkingQuickly/ansible-osx-setup.git
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;The easiest way to understand what&amp;#39;s being installed is to read &lt;a href=&quot;https://github.com/TalkingQuickly/ansible-osx-setup/blob/master/ansible_osx.yml&quot;&gt;https://github.com/TalkingQuickly/ansible-osx-setup/blob/master/ansible_osx.yml&lt;/a&gt;. This is an Ansible playbook.&lt;/p&gt;
+
+&lt;p&gt;A playbook is made up of a list of tasks. Here&amp;#39;s an excerp from the above file:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-yaml&quot; data-lang=&quot;yaml&quot;&gt;&lt;span&gt;&lt;/span&gt;&lt;span class=&quot;nn&quot;&gt;---&lt;/span&gt;
+&lt;span class=&quot;p p-Indicator&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;hosts&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;localhost&lt;/span&gt;
+  &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;tasks&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt;
+    &lt;span class=&quot;p p-Indicator&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;Install homebrew&lt;/span&gt;
+      &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;include_role&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt;
+        &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;geerlingguy.homebrew&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;Without worrying too much about the implementation details of the above, it&amp;#39;s fairly intuitive to understand that the above task is responsible for ensuring that Homebrew - the package manager for MacOS - is installed.&lt;/p&gt;
+
+&lt;p&gt;We then have:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-yaml&quot; data-lang=&quot;yaml&quot;&gt;&lt;span&gt;&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;#39;add&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s&quot;&gt;custom&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s&quot;&gt;homebrew&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s&quot;&gt;repos&amp;#39;&lt;/span&gt;
+  &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;community.general.homebrew_tap&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt;
+    &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;p p-Indicator&quot;&gt;[&lt;/span&gt;
+      &lt;span class=&quot;nv&quot;&gt;adoptopenjdk/openjdk&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;,&lt;/span&gt;
+      &lt;span class=&quot;nv&quot;&gt;fishtown-analytics/dbt&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;,&lt;/span&gt;
+      &lt;span class=&quot;nv&quot;&gt;...&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;This is responsible for adding any custom homebrew taps we need, in this case for OpenJDK and the awesome DBT. Homebrew taps are third party repositories which allow us to use homebrew to manage software not available in Homebrew core.&lt;/p&gt;
+
+&lt;p&gt;Customise this by adding any additional third party repositories you need for software you install. In day to day usage, I try to only add third party repositories using this Ansible playbook, rather than using the CLI directly. This keeps the playbook up to date for when I next need to configure a machine from scratch.&lt;/p&gt;
+
+&lt;p&gt;We then have:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-yaml&quot; data-lang=&quot;yaml&quot;&gt;&lt;span&gt;&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;Install core packages via brew casks&lt;/span&gt;
+  &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;community.general.homebrew_cask&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt;
+    &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;{{&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s&quot;&gt;item&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s&quot;&gt;}}&amp;quot;&lt;/span&gt;
+  &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;ignore_errors&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;yes&lt;/span&gt;
+  &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;with_items&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt;
+    &lt;span class=&quot;p p-Indicator&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;1password&lt;/span&gt;
+    &lt;span class=&quot;p p-Indicator&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;adoptopenjdk/openjdk/adoptopenjdk8&lt;/span&gt;
+    &lt;span class=&quot;p p-Indicator&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;android-sdk&lt;/span&gt;
+    &lt;span class=&quot;p p-Indicator&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;android-studio&lt;/span&gt;
+    &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;...&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;Which is responsible for installing graphical applications using homebrew casks. A huge proportion of GUI applications for MacOS have been packaged as Homebrew casks, so this allows us to automate the installation of everything from Office to Chrome, Firefox or VSCode.&lt;/p&gt;
+
+&lt;p&gt;This is using &lt;code&gt;community.general.homebrew_cask&lt;/code&gt; which is the community maintained ansible module for installing homebrew casks. When we fetch this module later using &lt;code&gt;ansible-galaxy install -r requirements.yml&lt;/code&gt; we&amp;#39;ll see that it&amp;#39;s currently set to fetch this module from Github rather than using the version on Ansible Galacy. This is because of a &lt;a href=&quot;https://github.com/ansible-collections/community.general/issues/1524&quot;&gt;breaking change in homebrew&lt;/a&gt; which leads to the ansible cask module failing with the error &lt;code&gt;Error: Calling brew cask install is disabled! Use brew install [--cask] instead.&lt;/code&gt; which has been fixed in Ansible but at time of writing not yet released.&lt;/p&gt;
+
+&lt;p&gt;We then install ordinary homebrew packages (both from core and the taps we added earlier):&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-yaml&quot; data-lang=&quot;yaml&quot;&gt;&lt;span&gt;&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;Install&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s&quot;&gt;homebrew&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s&quot;&gt;packages&amp;quot;&lt;/span&gt;
+  &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;community.general.homebrew&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt;
+    &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;p p-Indicator&quot;&gt;[&lt;/span&gt;
+      &lt;span class=&quot;s&quot;&gt;&amp;#39;autoconf&amp;#39;&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;,&lt;/span&gt;
+      &lt;span class=&quot;s&quot;&gt;&amp;#39;automake&amp;#39;&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;,&lt;/span&gt;
+      &lt;span class=&quot;s&quot;&gt;&amp;#39;aws-iam-authenticator&amp;#39;&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;,&lt;/span&gt;
+      &lt;span class=&quot;s&quot;&gt;&amp;#39;awscli&amp;#39;&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;,&lt;/span&gt;
+      &lt;span class=&quot;nv&quot;&gt;...&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;Note that at time of writing, certain types of exception (e.g. &lt;a href=&quot;https://github.com/fishtown-analytics/homebrew-dbt/issues/7&quot;&gt;this one&lt;/a&gt; in DBT) produce no logging output which can make failures at this step hard to debug. These types of failure are rare, but in this scenario the quickest way to find the offending package is to comment out half the list, re-run the playbook to see if the failure has gone away, and then continue to bisect the available packages. Once the offending package is found, then try to install it manually with &lt;code&gt;brew install PACKAGE&lt;/code&gt; and see what the error is.&lt;/p&gt;
+
+&lt;p&gt;The next section is responsible for setting up ZSH as the users default shell along with Oh My Zsh for lots of terminal goodness. If you aren&amp;#39;t already using it, I can&amp;#39;t recommend ZSH + &lt;a href=&quot;https://github.com/ohmyzsh/ohmyzsh&quot;&gt;Oh My Zsh&lt;/a&gt; enough.&lt;/p&gt;
+
+&lt;p&gt;Note that Ansible provides some useful helpers for things like &lt;a href=&quot;https://docs.ansible.com/ansible/latest/collections/ansible/builtin/lineinfile_module.html&quot;&gt;ensuring that a line exists in a file&lt;/a&gt;, e.g:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-yaml&quot; data-lang=&quot;yaml&quot;&gt;&lt;span&gt;&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;Ensure&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s&quot;&gt;homebrew&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s&quot;&gt;zsh&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s&quot;&gt;is&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s&quot;&gt;in&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s&quot;&gt;allowed&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s&quot;&gt;shells&amp;quot;&lt;/span&gt;
+  &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;lineinfile&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt;
+    &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;path&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;/etc/shells&lt;/span&gt;
+    &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;line&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;{{&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s&quot;&gt;zsh_path.stdout&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s&quot;&gt;}}&amp;quot;&lt;/span&gt;
+  &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;become&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;true&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;Which is much easier to read than the &lt;code&gt;sed&lt;/code&gt; magic we&amp;#39;d end up with if we were doing this in a shell script or similar.&lt;/p&gt;
+
+&lt;p&gt;Where needed however, there&amp;#39;s nothing wrong with using Ansible to just automate the shell commands you&amp;#39;d usually run yourself, e.g. here we install Oh My ZSH and set ZSH as the default shell:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-yaml&quot; data-lang=&quot;yaml&quot;&gt;&lt;span&gt;&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;Install Oh My ZSH&lt;/span&gt;
+  &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;shell&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;sh -c &amp;quot;$(curl -fsSL https://raw.githubusercontent.com/robbyrussell/oh-my-zsh/master/tools/install.sh)&amp;quot;&lt;/span&gt;
+  &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;args&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt;
+    &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;creates&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;/Users/{{&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s&quot;&gt;lookup(&amp;#39;env&amp;#39;,&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;USER&amp;#39;)&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s&quot;&gt;}}/.oh-my-zsh&amp;quot;&lt;/span&gt;
+
+&lt;span class=&quot;p p-Indicator&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;Set ZSH as the default shell&lt;/span&gt;
+  &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;shell&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;chsh -s $(which zsh) {{ lookup(&amp;#39;env&amp;#39;, &amp;#39;USER&amp;#39;) }}&lt;/span&gt;
+  &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;become&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;true&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;In many situations this is a great way to get started automating something with Ansible and is already infinitely better than copying and pasting commands into a terminal manually. It&amp;#39;s then easy to refactor later if you decide you want to use more specialised ansible modules. It effectively means &amp;quot;anything you can do in the terminal, you can automate with Ansible&amp;quot;. &lt;/p&gt;
+
+&lt;p&gt;We then have our first example of an Ansible template:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-yaml&quot; data-lang=&quot;yaml&quot;&gt;&lt;span&gt;&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;Create&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s&quot;&gt;a&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s&quot;&gt;default&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s&quot;&gt;ZSH&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s&quot;&gt;configuration&amp;quot;&lt;/span&gt;
+  &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;template&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt;
+    &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;src&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;templates/.zshrc.j2&lt;/span&gt;
+    &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;dest&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;/Users/{{ lookup(&amp;#39;env&amp;#39;, &amp;#39;USER&amp;#39;) }}/.zshrc&lt;/span&gt;
+    &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;owner&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;{{&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s&quot;&gt;lookup(&amp;#39;env&amp;#39;,&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;USER&amp;#39;)&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s&quot;&gt;}}&amp;quot;&lt;/span&gt;
+    &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;force&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;yes&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;This creates a &lt;code&gt;.zshrc&lt;/code&gt; (think like a &lt;code&gt;bashrc&lt;/code&gt; but for ZSH) in the users home directory. The contents of this file can be &lt;a href=&quot;https://github.com/TalkingQuickly/ansible-osx-setup/blob/master/templates/.zshrc.j2&quot;&gt;found here&lt;/a&gt;, at a high level it:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Configures and loads Oh My ZSH&lt;/li&gt;
+&lt;li&gt;Loads the ASDF version manager&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Most importantly, the default configuration will automatically load any configuration defined in &lt;code&gt;~/.zshrc.personal.after&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;So when customising, e.g. adding aliases etc, rather than modifying &lt;code&gt;~/.zshrc&lt;/code&gt; directly (and then loosing these changes the next time you run Ansible), you can add them to &lt;code&gt;~/.zshrc.personal.after&lt;/code&gt;. I have  &lt;code&gt;~/.zshrc.personal.after&lt;/code&gt; symlinked to a file in my personal Dropbox for easy sharing.&lt;/p&gt;
+
+&lt;p&gt;We then move onto configuring VSCode, first by creating a default configuration file:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-yaml&quot; data-lang=&quot;yaml&quot;&gt;&lt;span&gt;&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;Create a default VSCode configuration&lt;/span&gt;
+  &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;template&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt;
+    &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;src&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;templates/vscode-settings.json.j2&lt;/span&gt;
+    &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;dest&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;/Users/{{ lookup(&amp;#39;env&amp;#39;, &amp;#39;USER&amp;#39;) }}/Library/Application Support/Code/User/settings.json&lt;/span&gt;
+    &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;owner&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;{{&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s&quot;&gt;lookup(&amp;#39;env&amp;#39;,&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;USER&amp;#39;)&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s&quot;&gt;}}&amp;quot;&lt;/span&gt;
+    &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;force&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;no&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;Note the &lt;code&gt;force: no&lt;/code&gt; here. This means that unlike the &lt;code&gt;.zshrc&lt;/code&gt; file above, if the file already exists, Ansible will not overwrite it. This is because there&amp;#39;s no equivilent (that I know of) to &lt;code&gt;~/.zshrc.personal.after&lt;/code&gt; for VSCode so I prefer to not have the risk of overwriting my updated config accidentally at the expensive of having to manually update the Ansible template when I make local changes.&lt;/p&gt;
+
+&lt;p&gt;We then use a similar task to create some default keybindings.&lt;/p&gt;
+
+&lt;p&gt;Finally for VSCode, we install extensions:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-yaml&quot; data-lang=&quot;yaml&quot;&gt;&lt;span&gt;&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;Install VSCode extensions&lt;/span&gt;
+  &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;shell&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;code --install-extension {{ item }}&lt;/span&gt;
+  &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;with_items&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt;
+    &lt;span class=&quot;p p-Indicator&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;apollographql.vscode-apollo&lt;/span&gt;
+    &lt;span class=&quot;p p-Indicator&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;bradlc.vscode-tailwindcss&lt;/span&gt;
+    &lt;span class=&quot;p p-Indicator&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;castwide.solargraph&lt;/span&gt;
+    &lt;span class=&quot;p p-Indicator&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;clinyong.vscode-css-modules&lt;/span&gt;
+    &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;...&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;To find the identifier of an extension to add here, either:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Open the extensions page in VSCode, then click on the settings icon (the gear) and choose &amp;quot;Copy Extension ID&amp;quot;&lt;/li&gt;
+&lt;li&gt;Open the extensions page in a browser, e.g. &lt;a href=&quot;https://marketplace.visualstudio.com/items?itemName=rebornix.Ruby&quot;&gt;https://marketplace.visualstudio.com/items?itemName=rebornix.Ruby&lt;/a&gt; and the identifier is both in the url as &lt;code&gt;itemName&lt;/code&gt; (e.g. in this case &lt;code&gt;rebornix.Ruby&lt;/code&gt;) or further down the page in the right bar as &amp;quot;Unique Identifier&amp;quot;.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;We then move onto installing &lt;code&gt;asdf&lt;/code&gt;. asdf is a tool for managing versions of runtimes (e.g. ruby, pythong, node etc) and allows us to replace multiple language specific tools (e.g. &lt;code&gt;nvm&lt;/code&gt;, &lt;code&gt;brenv&lt;/code&gt; etc) with a single consistent interface.&lt;/p&gt;
+
+&lt;p&gt;The &lt;code&gt;.zshrc&lt;/code&gt; which we looked at above already contains the lines to load asdf, these are:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span&gt;&lt;/span&gt;&lt;span class=&quot;c1&quot;&gt;# Load asdf&lt;/span&gt;
+. &lt;span class=&quot;nv&quot;&gt;$HOME&lt;/span&gt;/.asdf/asdf.sh
+. &lt;span class=&quot;nv&quot;&gt;$HOME&lt;/span&gt;/.asdf/completions/asdf.bash
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;so we just need to clone the asdf repo which is done by this task:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-yaml&quot; data-lang=&quot;yaml&quot;&gt;&lt;span&gt;&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;git&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt;
+    &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;repo&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;https://github.com/asdf-vm/asdf.git&lt;/span&gt;
+    &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;dest&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;/Users/{{&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s&quot;&gt;lookup(&amp;#39;env&amp;#39;,&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;USER&amp;#39;)&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s&quot;&gt;}}/.asdf&amp;quot;&lt;/span&gt;
+    &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;version&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;v0.7.1&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;asdf is plugin based, e.g. there is a plugin to allow it to manage ruby versions, another to allow it to manage node versions etc. Googling pretty much any &lt;code&gt;asdf LANGUAGE plugin&lt;/code&gt; variant will yield an existing asdf plugin for managing versions of that language.&lt;/p&gt;
+
+&lt;p&gt;So to begin with we install plugins for the languages we use:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-yaml&quot; data-lang=&quot;yaml&quot;&gt;&lt;span&gt;&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;Install&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s&quot;&gt;asdf&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s&quot;&gt;plugins&amp;quot;&lt;/span&gt;
+  &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;shell&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;p p-Indicator&quot;&gt;|&lt;/span&gt;
+    &lt;span class=&quot;no&quot;&gt;source /Users/{{ lookup(&amp;#39;env&amp;#39;, &amp;#39;USER&amp;#39;) }}/.asdf/asdf.sh&lt;/span&gt;
+    &lt;span class=&quot;no&quot;&gt;asdf plugin-add {{ item }} || exit 0&lt;/span&gt;
+  &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;with_items&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt;
+    &lt;span class=&quot;p p-Indicator&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;ruby&lt;/span&gt;
+    &lt;span class=&quot;p p-Indicator&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;elixir&lt;/span&gt;
+    &lt;span class=&quot;p p-Indicator&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;nodejs&lt;/span&gt;
+    &lt;span class=&quot;p p-Indicator&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;python&lt;/span&gt;
+    &lt;span class=&quot;p p-Indicator&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;erlang&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;There&amp;#39;s a couple of things to note here. Firstly before using the &lt;code&gt;shell&lt;/code&gt; module to execute &lt;code&gt;asdf&lt;/code&gt; commands, we have the line &lt;code&gt;source /Users/{{ lookup(&amp;#39;env&amp;#39;, &amp;#39;USER&amp;#39;) }}/.asdf/asdf.sh&lt;/code&gt;. This is usually executed when we load a shell via &lt;code&gt;~/.zshrc&lt;/code&gt; but since Ansible won&amp;#39;t be initiating a login shell for every commands, we have to run this manually.&lt;/p&gt;
+
+&lt;p&gt;Secondly the use of &lt;code&gt;|| exit 0&lt;/code&gt; when adding a plugin. This is because at time of writing, asdf will return a none zero error code if the plugin we add is already installed. Ansible will then interpret this as a failure and stop the play from running. We do not want this because the goal is to have a playbook we can run repeatedly to apply changes.&lt;/p&gt;
+
+&lt;p&gt;So the &lt;code&gt;|| exit 0&lt;/code&gt; ensures that this line always returns a success exit code. The downside of this is that it masks genuine errors, but thankfully these are rare and will show up as a &amp;quot;plugin not installed&amp;quot; error when we later try and use the plugin. &lt;/p&gt;
+
+&lt;p&gt;Once we have plugins installed, we then need to install versions and any default libraries, to take ruby as an example;&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;- name: &amp;quot;Install Default Ruby&amp;quot;
+  shell: |
+    source /Users/{{ lookup(&amp;#39;env&amp;#39;, &amp;#39;USER&amp;#39;) }}/.asdf/asdf.sh
+    asdf install ruby 3.0.0
+    asdf install ruby 2.7.2
+    asdf global ruby 3.0.0
+    gem install bundler -v 2.2.4
+    gem install cocoapods
+    gem install rubocop
+    gem install solargraph
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;As before we &lt;code&gt;source&lt;/code&gt; asdf before using its cli commands. We then install versions, in this case I have both ruby 3 and ruby 2 projects so I install a version of each. We then set the global version to &lt;code&gt;3.0.0&lt;/code&gt; which means that when there is no &lt;code&gt;.tool-versions&lt;/code&gt; file available specifying a particular ruby version, asdf will fallback to &lt;code&gt;3.0.0&lt;/code&gt;. Finally we install a selection of gems (libraries) for the default ruby.&lt;/p&gt;
+
+&lt;p&gt;The final section of the playbook installs a selection of android SDK&amp;#39;s using &lt;code&gt;sdkmanager&lt;/code&gt;:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;- name: Install Addroid SDKs etc
+  shell: yes | sdkmanager &amp;quot;{{ item }}&amp;quot; --sdk_root=/Users/{{ lookup(&amp;#39;env&amp;#39;, &amp;#39;USER&amp;#39;) }}/Library/Android/sdk
+  with_items:
+    - &amp;quot;add-ons;addon-google_apis-google-21&amp;quot;        
+    - &amp;quot;add-ons;addon-google_apis-google-22&amp;quot; 
+    - &amp;quot;add-ons;addon-google_apis-google-23&amp;quot;
+    ...
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;Which is only applicable if you will be using the machine for Android development.&lt;/p&gt;
+
+&lt;p&gt;Something not used in this playbook but also available is installing MacOS App Store apps directly with ansible via &lt;code&gt;mas&lt;/code&gt; (which we installed with homebrew earlier):&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-yaml&quot; data-lang=&quot;yaml&quot;&gt;&lt;span&gt;&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;Install apps from the Mac App Store using mas (Assumes you&amp;#39;re logged in etc)&lt;/span&gt;
+  &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;shell&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;mas install {{ item }}&lt;/span&gt;
+  &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;with_items&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt;
+    &lt;span class=&quot;p p-Indicator&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;409183694&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;# Keynote&lt;/span&gt;
+    &lt;span class=&quot;p p-Indicator&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;1295203466&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;# Microsoft remote desktop&lt;/span&gt;
+    &lt;span class=&quot;p p-Indicator&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;497799835&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;# xcode&lt;/span&gt;
+    &lt;span class=&quot;p p-Indicator&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;496437906&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;# shush microphone manager&lt;/span&gt;
+    &lt;span class=&quot;p p-Indicator&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;419330170&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;# Moom window manager&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;This comes with the important caveat that you must have installed the app before manually (e.g. on a different machine) for this to work. For more on how to use &lt;code&gt;mas&lt;/code&gt; including how to find app identifiers see &lt;a href=&quot;https://github.com/mas-cli/mas&quot;&gt;the mas documentation&lt;/a&gt;&lt;/p&gt;
+
+&lt;h2&gt;Typical Workflow&lt;/h2&gt;
+
+&lt;p&gt;After forking this playbook and cloning locally, before you can run it, you need to:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Install XCode and Command Line Tools &lt;/li&gt;
+&lt;li&gt;Install Ansible&lt;/li&gt;
+&lt;li&gt;Fetch community Asnible modules defined in &lt;code&gt;requirements.txt&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;This can be done in one step using the script in &lt;code&gt;bin/bootstrap&lt;/code&gt;:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span&gt;&lt;/span&gt;&lt;span class=&quot;ch&quot;&gt;#!/bin/sh&lt;/span&gt;
+xcode-select --install
+sudo xcodebuild -license
+sudo easy_install pip
+pip install --ignore-installed ansible
+ansible-galaxy install -r requirements.yml
+
+ansible-playbook -i &lt;span class=&quot;s2&quot;&gt;&amp;quot;localhost,&amp;quot;&lt;/span&gt; -c &lt;span class=&quot;nb&quot;&gt;local&lt;/span&gt; ansible_osx.yml --ask-become-pass
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;This will complete the required prerequisite steps and then run the playbook (asking you for your sudo password when it does so).&lt;/p&gt;
+
+&lt;p&gt;Ideally whenever you need to add software to your MacOS install, rather than installing it manually, you update your Ansible playbook and re-run the Ansible command:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span&gt;&lt;/span&gt;ansible-playbook -i &lt;span class=&quot;s2&quot;&gt;&amp;quot;localhost,&amp;quot;&lt;/span&gt; -c &lt;span class=&quot;nb&quot;&gt;local&lt;/span&gt; ansible_osx.yml --ask-become-pass
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;If like me, Ansible commands just don&amp;#39;t stick in your head, there&amp;#39;s a shortcut for this in the form of &lt;code&gt;bin/apply&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;If you follow this iterative approach of updating the playbook as you install new software, when the time comes to provision a new machine from scratch, it will be a much easier ride.&lt;/p&gt;
+
+&lt;p&gt;{% endraw %}&lt;/p&gt;
+</content>
+<summary>Manual repetitive tasks are my nemesis and setting up a new Macbook from scratch is a prime example of this. Using Ansible we can completely automate this process. This is valuable both for individual efficiency and for facilitating standardised &amp;quot;team setups&amp;quot; so that new joiners avoid spending their first days googling obscure node version errors.Ansible is a tool most commonly associated with the setup of servers and infrastructure. But more broadly it&amp;#39;s an excellent tool for automating the setup of any computer, including laptops and workstations. Of all the configuration management tools out there it&amp;#39;s by far the easiest one to use - requiring no devops background at all - and has an amazing community supporting it.This posts outlines the setup I&amp;#39;ve evolved over the previous few years which means setting up a new Macbook pro for fairly broad development (Rails, Javascript, Elixir, Python, Android &amp;amp; iOS) now takes just a couple of commands. This includes loading all my shell customisations and GUI apps like Chrome, Office, Virtualbox etc.</summary>
+</entry>
+<entry>
+<title>Cloudformation - NodeGroup failed to stabilize: Internal Failure</title>
+<link href="https://www.talkingquickly.co.uk/2020/04/nodegroup-failed-to-stabilize-internal-failure/" rel="alternate" type="text/html" title="Cloudformation - NodeGroup failed to stabilize: Internal Failure" />
+<published>2020-04-28T09:00:00+00:00</published>
+<updated>2020-04-28T09:00:00+00:00</updated>
+<id>https://www.talkingquickly.co.uk/2020/04/nodegroup-failed-to-stabilize-internal-failure</id>
+<content type="html" xml:base="https://www.talkingquickly.co.uk/2020/04/nodegroup-failed-to-stabilize-internal-failure/">&lt;p&gt;A recent change to AWS NodeGroup behaviour means that some CloudFormation stacks which create EKS NodeGroups may start to fail with the error &lt;code&gt;Nodegroup the-nodegroup-name failed to stabilize: Internal Failure&lt;/code&gt;. Googling currently doesn&amp;#39;t return much. The problem is related to &lt;a href=&quot;https://aws.amazon.com/blogs/containers/upcoming-changes-to-ip-assignment-for-eks-managed-node-groups/&quot;&gt;this change&lt;/a&gt; relating to whether or not public IP&amp;#39;s are assigned to nodes.&lt;/p&gt;
+
+&lt;!--more--&gt;
+
+&lt;p&gt;Prior to April 22nd, managed node groups always assign public IP&amp;#39;s to nodes, irrespective of the value of &lt;code&gt;MapPublicIpOnLaunch&lt;/code&gt; on the associated subnet. Going forward public IP&amp;#39;s will only be assigned if &lt;code&gt;MapPublicIpOnLaunch&lt;/code&gt; is &lt;code&gt;true&lt;/code&gt; on the associated subnet.&lt;/p&gt;
+
+&lt;p&gt;So if creating the subnet via Cloudformation, we previously had:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;Subnet1a:
+  Type: AWS::EC2::Subnet
+  Properties:
+    VpcId: !Ref VPC
+    AvailabilityZone:
+      Fn::Sub: &amp;#39;${Region}a&amp;#39;
+    CidrBlock: 172.16.0.0/18
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;We would now need to add the final line as below:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;Subnet1a:
+  Type: AWS::EC2::Subnet
+  Properties:
+    VpcId: !Ref VPC
+    AvailabilityZone:
+      Fn::Sub: &amp;#39;${Region}a&amp;#39;
+    CidrBlock: 172.16.0.0/18
+    MapPublicIpOnLaunch: true
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;For our existing configuration to continue working. More info is &lt;a href=&quot;https://aws.amazon.com/blogs/containers/upcoming-changes-to-ip-assignment-for-eks-managed-node-groups/&quot;&gt;in the AWS post&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;The trick to debugging turned out to be setting &lt;code&gt;disable_rollback&lt;/code&gt; to &lt;code&gt;true&lt;/code&gt; (if using Ansible to manage Cloudformation) so that the NodeGroup wasn&amp;#39;t deleted on failure making it possible to go in and inspect the NodeGroup.&lt;/p&gt;
+</content>
+<summary>A recent change to AWS NodeGroup behaviour means that some CloudFormation stacks which create EKS NodeGroups may start to fail with the error Nodegroup the-nodegroup-name failed to stabilize: Internal Failure. Googling currently doesn&amp;#39;t return much. The problem is related to this change relating to whether or not public IP&amp;#39;s are assigned to nodes.</summary>
+</entry>
+<entry>
+<title>90 Days of Learning</title>
+<link href="https://www.talkingquickly.co.uk/ninety-days-of-learning" rel="alternate" type="text/html" title="90 Days of Learning" />
+<published>2019-09-01T11:00:00+00:00</published>
+<updated>2019-09-01T11:00:00+00:00</updated>
+<id>https://www.talkingquickly.co.uk/ninety-days-of-learning</id>
+<content type="html" xml:base="https://www.talkingquickly.co.uk/ninety-days-of-learning">&lt;p&gt;An area I’m keen to experiment with batching strategies for is learning. Specifically getting “over the hump” with things that require a substantial upfront commitment before a return is delivered. Today I&amp;#39;m kicking off a 90 day experiment of &lt;a href=&quot;/habits-and-batching&quot;&gt;batching&lt;/a&gt; together learning three such things.&lt;/p&gt;
+
+&lt;!--more--&gt;
+
+&lt;p&gt;The three examples I&amp;#39;m focussing on are:&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;Core statistical methods applicable to data science &lt;/li&gt;
+&lt;li&gt;Kite Surfing&lt;/li&gt;
+&lt;li&gt;The RYA Day Skipper qualification &lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;Those who don’t know me may not see an immediate correlation between those three topics. Those who do may recognise them as things I’ve spent a disproportionate amount of time talking about in the last 18 months vs the amount of tangible progress I’ve actually made on them. &lt;/p&gt;
+
+&lt;p&gt;My working theory is that each of them require a substantial amount of focussed investment before it becomes useful and while the definition of focused attention varies between them, in all cases it’s of a type that lends itself to batching rather than reactive habits. &lt;/p&gt;
+
+&lt;h2&gt;The Principles&lt;/h2&gt;
+
+&lt;p&gt;The experiment is to spend initially 30 days where my primary focus outside of work is to get &amp;quot;over the hump&amp;quot; in these three disciplines, with an expectation that if it looks to be working, I&amp;#39;ll extend it for an additional 60 days.&lt;/p&gt;
+
+&lt;p&gt;The principles are less &amp;quot;rules&amp;quot; to be enforced, and more so that if the experiment is succesful, I can replicate in future, and if it&amp;#39;s not, I have something to look back and ask &amp;quot;what didn&amp;#39;t work&amp;quot;.&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;In any given week, some progress towards must be made towards one of these things at least 5 days out of 7&lt;/li&gt;
+&lt;li&gt;Progress must be documented, either through &lt;a href=&quot;https://til.talkingquickly.co.uk&quot;&gt;TIL&lt;/a&gt; or blog posts&lt;/li&gt;
+&lt;li&gt;Progress is of course subjective, but generally should involve at least an hour of effort&lt;/li&gt;
+&lt;li&gt;Other regular goals will be relaxed during this period, specifically target for gym attendance will go from 5 sessions per week to 3&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h2&gt;The core statistical methods in data science&lt;/h2&gt;
+
+&lt;p&gt;Whilst I have a comfortable grounding in statistics from both education and previous projects, I’m keen to increase my level of practical expertise.&lt;/p&gt;
+
+&lt;p&gt;To give a specific example; if a data scientist explained to me that a model was written in R, utilised principal component analysis followed by multiple linear regression, I would understand what that means and be able to have a sensible conversation about limitations and other approaches.&lt;/p&gt;
+
+&lt;p&gt;If, however, I had a data set with multiple dimensions and thought “I wonder what the principle components of this are”. I wouldn’t be able to jump into R and calculate this myself. Similarly if one of our data scientists shows me a model in R, I can generally understand with their guidance how it works, but my ability to play with it and make small changes to it myself are limited.&lt;/p&gt;
+
+&lt;p&gt;So my goal is to develop sufficient competency in basic statistical methods in R, to be able to perform my own exploratory analysis and readily comprehend similar analysis from others. &lt;/p&gt;
+
+&lt;p&gt;Previous attempts have centred around the book &lt;a href=&quot;https://www.amazon.co.uk/Practical-Statistics-Scientists-Peter-Bruce/dp/1491952962/ref=sr_1_1&quot;&gt;Practical statistical methods for data scientists&lt;/a&gt; and have followed my default approach of “find half an hour to an hour every day”. While I&amp;#39;ve found the book itself to be excllent, these have generally failed not due to the learning itself but due to lack of momentum or to use a (catchy) acronym I made up, due to a high TTTIFLP.&lt;/p&gt;
+
+&lt;p&gt;TTTIFLP (pronounced &amp;quot;tifulp&amp;quot;) or “time to this is fun let’s play” is a metric in the loosest sense of the word which looks at how long until you gain enough knowledge to enjoyably explore in a self guided fashion.&lt;/p&gt;
+
+&lt;p&gt;As an example Ruby in Rails has an incredibly low TTOFLP, anybody with the most basic understanding of programming can go from never having used it to building fairly comprehensive and functional web applications in a very small amount of time.&lt;/p&gt;
+
+&lt;p&gt;Working through practical statistics for data scientists has a fairly high TTTIFLP. While the individual concepts are fairly intuitive and quick to grasp, I&amp;#39;ve never managed to cross the tipping point where, when I&amp;#39;ve got a piece of analysis I&amp;#39;m interested in, I&amp;#39;ll reach for R rather than a more familiar combination of SQL / Ruby for munging and Excel for analysis.&lt;/p&gt;
+
+&lt;p&gt;So my success metric for this piece of learning is to be sufficiently competent in R and the methods learned to generally prefer to conduct my analysis here rather than in the tools I already know well.&lt;/p&gt;
+
+&lt;h2&gt;Kite Surfing&lt;/h2&gt;
+
+&lt;p&gt;Of the three areas, kite surfing is probably the one with the greatest different in the amount I&amp;#39;ve talked about vs the amount I&amp;#39;ve actually progressed.&lt;/p&gt;
+
+&lt;p&gt;In Christmas 2018 I had a 1.5 hour private lesson in fairly high wind conditions in Perth WA. This was beyond fun and got me as far as body dragging; this means being in the water and attached to the kite but rather than having your feet attached to a board, you just control the kite in such a way that you are dragged through the water in a controlled fashion.&lt;/p&gt;
+
+&lt;p&gt;This confirmed that in one respect kite surfing has an extremely low TTTIF (notice the missing &amp;quot;LP&amp;quot;); I think I started grinning at about minute 10 of my first lesson and didn&amp;#39;t stop for the rest of the day.&lt;/p&gt;
+
+&lt;p&gt;The challenge is the &amp;quot;Let&amp;#39;s Play&amp;quot; part. Kite surfing involves a substantial amount of equipment, setup and technical skill. While a realtively safe sport when done properly, it can also be relatively dangerous, to onself and those around them, if not done properly.&lt;/p&gt;
+
+&lt;p&gt;So there&amp;#39;s a certain base level of ability needed before it&amp;#39;s practical to go and rent equipment and &amp;quot;play&amp;quot;.&lt;/p&gt;
+
+&lt;p&gt;In Spring of 2019 (turns our to be a highly affordable if incredibly cold time of year to Kite Surf in the UK, thanks &lt;a href=&quot;https://twitter.com/TravisLeeStreet&quot;&gt;@TravisLeeStreet&lt;/a&gt; for giving this a go with me) I tried a one day group course at Camber sands, which while also great fun and well taught, the group nature means I didn&amp;#39;t actually get much closer to being able to practice independantly.&lt;/p&gt;
+
+&lt;p&gt;So the goal for this experiment is to get to a point where I&amp;#39;m competant to rent equipment and practice independently. My initial strategy for this is to focus entirely on a smaller number of private lessons. Having chatted to one of the well respected kite surfing schools in the UK, they seemc confident that the fastest approach to this is 3 x 3 hours of 1to1 tuition with radio helmets to minimise the amount of time spent stopping to review progress.&lt;/p&gt;
+
+&lt;h2&gt;The RYA Day Skipper Qualification&lt;/h2&gt;
+
+&lt;p&gt;The RYA Day skipper is a qualification which confirms the holder is competant to skipper a yacht on coastal passages in daylight. While it is a UK focussed qualification, it is recognised internationally holding this or an equivilent qualification generally the basic requirement to be able to charter a sailing yacht anywhere in the world.&lt;/p&gt;
+
+&lt;p&gt;The course has two core components, a theory and a practical.&lt;/p&gt;
+
+&lt;p&gt;The theory test can be taken online and general estimates seem to be that 2 weekends and some evenings are sufficient, with the official RYA estimate being up to 40 hours of study may be required (so around 5 full days). The theory course needs to be completed before the practical course.&lt;/p&gt;
+
+&lt;p&gt;To date I&amp;#39;ve struggled to stick with studying for the theory course, primarily because having spent a fair amount of time crewing on both dingies and larger boarts growing up, the study is a mixture of things I already have some experience with, and bits I&amp;#39;ve missed completely as a result of having learned primarily through osmosis.&lt;/p&gt;
+
+&lt;p&gt;Combined with the fact that while interesting, there&amp;#39;s currently no practical places to put the knowledge learned to good use, I&amp;#39;ve tended to lose focus and revert to learning things with a more immediate return.&lt;/p&gt;
+
+&lt;p&gt;My goal for the full 90 day experiment is to complete both the theory exam and - if feasable - the 5 day practical exam. If this is not faesable, e.g. due to course availability or weather issues, then the secondary goal would be to at least have the practical booked.&lt;/p&gt;
+
+&lt;p&gt;Most updates on progress will be on Twitter &lt;a href=&quot;https://www.twitter.ciom/talkingquickly&quot;&gt;@TalkingQuickly&lt;/a&gt; or my &lt;a href=&quot;https://til.talkingquickly.co.uk&quot;&gt;Today I Learned&lt;/a&gt;.&lt;/p&gt;
+</content>
+<summary>An area I’m keen to experiment with batching strategies for is learning. Specifically getting “over the hump” with things that require a substantial upfront commitment before a return is delivered. Today I&amp;#39;m kicking off a 90 day experiment of batching together learning three such things.</summary>
+</entry>
+<entry>
+<title>Habits and Batching</title>
+<link href="https://www.talkingquickly.co.uk/habits-and-batching" rel="alternate" type="text/html" title="Habits and Batching" />
+<published>2019-08-21T15:40:00+00:00</published>
+<updated>2019-08-21T15:40:00+00:00</updated>
+<id>https://www.talkingquickly.co.uk/habit-and-batching</id>
+<content type="html" xml:base="https://www.talkingquickly.co.uk/habits-and-batching">&lt;p&gt;One of the most high leverage tools available to us is habit. We are the sum of the things we do, our habits tend to be the things we do most and therefore we tend towards being the sum of our habits. Charles Duhigg&amp;#39;s &lt;a href=&quot;https://www.amazon.co.uk/Power-Habit-Why-What-Change/dp/1847946240&quot;&gt;The Power of Habit&lt;/a&gt; is a great primer on this. An interplay I&amp;#39;m increasingly interested in is the one between habits and batching (or habits of batching).&lt;/p&gt;
+
+&lt;!--more--&gt;
+
+&lt;p&gt;A typical example of a habit is something we do every day, like going to the gym or writing in a journal. But a habit more broadly is anything we regularly do as a result of a trigger. So going to the gym as soon as we wake up is a habit, but so is checking our email the moment we get a notification.&lt;/p&gt;
+
+&lt;p&gt;Many things lend themselves well to becoming habits. Always defaulting to whatever doesn’t come with potatoes, going to the gym immediately after waking up and automating everything that needs doing more than twice are example of habits I believe make my life better. &lt;/p&gt;
+
+&lt;p&gt;One of the most common forms of productivity reducing habit is reactively dealing with things that have setup or switching costs costs. If the machine to make a nail takes five minutes to warm up and then 10 seconds to make a nail, then the habit of waiting until I need a nail then going and making one will lead to each nail taking five minutes and ten seconds. If I wait until I need 30 nails and do them in one go, it will take 10 minutes in total, or 20 seconds per nail.&lt;/p&gt;
+
+&lt;p&gt;This is called batching. By grouping similar tasks together we save on setup and tear down times, and in many real life scenarios, also complete the individual tasks more quickly as a result of increase flow.&lt;/p&gt;
+
+&lt;p&gt;If we can develop a habit of batching tasks which benefit from it, we can expect to complete them more effectively. One of the most common examples of this is deciding to look and and respond to email at only one or two points in the day. By doing this we save the switching costs associated with being interrupted by email notifications and dramatically reduce the amount of time required to deal with our inbox.&lt;/p&gt;
+
+&lt;p&gt;The Interplay between habits and batching is one of those things where once you&amp;#39;ve seen it somewhere, you start seeing it everywhere. Particularly in the sense that the solution to a lot of bad habits, it&amp;#39;s to replace a trigger response which is &amp;quot;do x immediately&amp;quot; with a trigger response &amp;quot;add x to a batch&amp;quot;.&lt;/p&gt;
+
+&lt;p&gt;Processing the batch may then, in itself, be a new habit to be formed. E.g. Adding things to a todo list is a habit which can show immediate results in terms of reduced mental load, but it will quickly fall apart if you do not have a habit or set of habits which mean the list gets regularly prioritised and processed.&lt;/p&gt;
+
+&lt;p&gt;So a useful mental model I&amp;#39;ve now explicitly added to my arsenal is; &amp;quot;is this an example of a thing which would be better dealt with by two new habits, one to reactively add it to batches and another to process those batches&amp;quot;.&lt;/p&gt;
+</content>
+<summary>One of the most high leverage tools available to us is habit. We are the sum of the things we do, our habits tend to be the things we do most and therefore we tend towards being the sum of our habits. Charles Duhigg&amp;#39;s The Power of Habit is a great primer on this. An interplay I&amp;#39;m increasingly interested in is the one between habits and batching (or habits of batching).</summary>
+</entry>
+<entry>
+<title>Getting things done while staying sane</title>
+<link href="https://www.talkingquickly.co.uk/getting-things-done-while-staying-sane" rel="alternate" type="text/html" title="Getting things done while staying sane" />
+<published>2018-04-29T15:40:00+00:00</published>
+<updated>2018-04-29T15:40:00+00:00</updated>
+<id>https://www.talkingquickly.co.uk/getting-things-done-while-staying-sane</id>
+<content type="html" xml:base="https://www.talkingquickly.co.uk/getting-things-done-while-staying-sane">&lt;p&gt;These are the guidelines I aim to follow with the goal of maintaining a high output while still enjoying life and avoiding burnout. I can&amp;#39;t claim to be exceptionally good at sticking to them. As per usual, the &amp;quot;you&amp;quot; here is me, this isn&amp;#39;t advice, it&amp;#39;s just what&amp;#39;s worked for me whenever I&amp;#39;ve managed to stick to it. It&amp;#39;s definitely highly influenced by the dynamics of building technology companies and is very tailored to the quirks of my psyche, ymmv.&lt;/p&gt;
+
+&lt;!--more--&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;Be nice to people. The number of situations where anger or aggression are either warranted or productive are so close to zero that it&amp;#39;s not worth considering. The most productive way to respond to emotional or aggravating behaviour in others is generally calm empathy, it&amp;#39;s usually a misunderstanding anyway. Getting irritated over minor misunderstandings sixteen times per day is a pretty solid recipe for burnout but if you want to guarantee it, just add coffee.&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Unless you &lt;em&gt;really&lt;/em&gt; care about your point, consider not making it. Be ruthless about which things you chime in on. Maintain a very small surface area of identity and opinion. The exception to this is when debating for fun, but be very careful when doing this that you&amp;#39;re not slipping into your point becoming confused with your identity.&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Look out for opinions which become part of your identity. Have you become a &amp;quot;ruby person,&amp;quot; an &amp;quot;apple person&amp;quot; or a &amp;quot;liberal person&amp;quot;. These are the things you&amp;#39;re most likely to be wrong about in the face of overwhelming evidence. Being genuinely open minded / Bayesian in the way you form and revise opinions is truly a super-power. The exception is tabs v spaces, the answers is always spaces.  &lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Work out what your insecure about, this is where you decision making is likely to be irrational and where you&amp;#39;re most likely to fall back to dogmatic, identity based opinions rather than Bayesian decision making.&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Anything in your life which you measure by the approval or opinion of others, will be a net source of unhappiness. Your only metric should be whether your actions were the best they could be in the circumstances based on your principles. And this metric should only be relevant insofar as it allows you to improve the quality of your actions in the future. Essentially the stoics got it right. This is really, really, really hard.&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;For this to work you need principles. Think a lot about what you believe in, what you care about and what&amp;#39;s genuinely important to you. It&amp;#39;s amazingly easy to coast by without doing this.&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Watch for people who&amp;#39;s approval you seek and work out why. Generally they will have an attribute you would like to have. Rebase your focus onto your success in completing actions which progress you in attaining that attribute (e.g. things within your control). If the attribute is not acquirable or you do not actually consider those actions a good use of time, re-base your focus onto success being recognising and halting behaviour which is motivated by that approval seeking.&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;If you really believe something, the fact that others disagree should be something you learn to sit comfortably with. We are herd animals so it&amp;#39;s OK this is difficult, you&amp;#39;re fighting biology. Disagreement from somebody who&amp;#39;s opinions you generally value should prompt a re-evaluation, but you shouldn&amp;#39;t chase consensus. Disagreement by somebody who&amp;#39;s opinion you don&amp;#39;t value should be default ignored, see almost all internet arguments ever.&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Focus. Switching between tasks is at least an order of magnitude less efficient than focussing on one task at a time. It is not possible to multitask, be gracious to people who believe they can and support them when they burn out.&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;When meetings are used as precision tools, they can be very productive, unfortunately many aren&amp;#39;t and as a result are a waste of time. Try and time box meetings into specific parts of the day and the week and never go to meetings without an agenda. If you aren&amp;#39;t adding or getting value from a meeting, don&amp;#39;t sit their surreptiously looking at your phone, leave and do something productive with the time. This is not rude, it&amp;#39;s efficient.&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Deal with your meeting FOMO. If the only way that information gets to you is via constant catch ups and review meetings then the communication structures you have in place are fundamentally broken. But it&amp;#39;s more likely you&amp;#39;re just scared of letting go. Ask people to summarise outputs from meetings and then ask clarifying questions.&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Recurring meetings are particularly questionable, if you must have them, make them cancelled by default and  only keep them when an agenda exists in advance, even when there is an agenda, think carefully about whether there really needs to be a meeting for it or if it can be resolved via chat / email.&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Prioritise and pick one thing. Start ideally each week and without fail each day with one thing you want to get done. As other things come in, default to deferring or delegating them immediately. Constantly ask yourself if the thing that&amp;#39;s interrupting you is &lt;em&gt;really&lt;/em&gt; more impactful and urgent than the thing you&amp;#39;re working on. Almost everything isn&amp;#39;t as long as you&amp;#39;re doing a good job of picking the &amp;quot;one thing&amp;quot; for the day.&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;No, really one thing. If your goal is to build a prototype of x, then use technologies and a framework you know to build that thing. Building a new prototype and doing it in a new language or using a new framework for it is not doing one thing, it&amp;#39;s doing two things. You may still do both, but be clear that you&amp;#39;re doing two things and account for the resulting hit in efficiency.&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Have a plan. Ad-hoc decision making is very tiring. On at least a daily basis, have a plan for what you&amp;#39;re going to do, generally this should be driven by a weekly and possibly monthly plan, which themselves should be tightly focussed. Be annoyingly stubborn about deviating from that plan. When you do deviate, make a new plan and then stick to that. Whatever you do, do not allow an interruption to push you into ad-hoc, unstructured time.&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Your plan should include switching off, time for friends and family and things outside of work. Be especially stubborn about deviating from this part of the plan. This doesn&amp;#39;t mean agendas for date night, it means not skipping date night to focus on upgrading Gitlab or writing revision one thousand nine hundred and sixty three of that blog post.&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;You will always encounter some people who believe it&amp;#39;s a sign of weakness not to immediately cancel any personal plans for work. These people will always be a net negative both in life overall and in the success of a business venture. Be polite but unwavering in making your position on this clear and if necessary excluding them from anything you are involved with. If you aren&amp;#39;t in a position to do this, consider leaving, &amp;quot;first in last out, nothing else matters&amp;quot; driven cultures are toxic and will eventually implode anyway.&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Your plan should be realistic, any plan which regularly requires you to; sleep less than 8 hours, skip meditation or exercise or heavily reduce time with family and loved ones will fail.&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Be aware of crunch time. Whether it&amp;#39;s shipping a feature, raising money or managing a project which has gone off the rails, sometimes there will be a defined period where all energy and then some has to be diverted to one thing. Recognise that you&amp;#39;re depleting a finite store during these periods due to lack of sleep, exercise and downtime and that the further you or anyone else gets into this period, the less rational decision making will become and the lower the return on each additional hour worked will be. Give yourself and others you&amp;#39;re responsible for time to re-charge afterwards.&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Make lists, lots of lists. The worst place to keep everything except hats and sunglasses is your head.&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Drink lots of water, avoid caffeine and remember that cheap wine with awesome people will always taste better than a fancy vintage without them.&lt;/p&gt;&lt;/li&gt;
+&lt;/ol&gt;
+</content>
+<summary>These are the guidelines I aim to follow with the goal of maintaining a high output while still enjoying life and avoiding burnout. I can&amp;#39;t claim to be exceptionally good at sticking to them. As per usual, the &amp;quot;you&amp;quot; here is me, this isn&amp;#39;t advice, it&amp;#39;s just what&amp;#39;s worked for me whenever I&amp;#39;ve managed to stick to it. It&amp;#39;s definitely highly influenced by the dynamics of building technology companies and is very tailored to the quirks of my psyche, ymmv.</summary>
+</entry>
+<entry>
+<title>A Rails development environment with Docker</title>
+<link href="https://www.talkingquickly.co.uk/2018/03/rails-development-environment-with-docker-compose/" rel="alternate" type="text/html" title="A Rails development environment with Docker" />
+<published>2018-03-04T14:18:00+00:00</published>
+<updated>2018-03-04T14:18:00+00:00</updated>
+<id>https://www.talkingquickly.co.uk/2018/03/rails-development-environment-with-docker-compose</id>
+<content type="html" xml:base="https://www.talkingquickly.co.uk/2018/03/rails-development-environment-with-docker-compose/">&lt;p&gt;Docker and Docker Compose reduces bringing up a development environment on any system which supports Docker to a single command. For me this means the time to a working development environment, even on a fresh machine for a project I haven&amp;#39;t worked on for months or years, is just a few seconds.&lt;/p&gt;
+
+&lt;!--more--&gt;
+
+&lt;p&gt;This tutorial is not a comprehensive introduction to either Docker or Docker Compose, for this this I highly recomend the &lt;a href=&quot;https://docs.docker.com/compose/gettingstarted/&quot;&gt;official docker compose tutorial&lt;/a&gt; as a starting point. The steps here will stand alone but it&amp;#39;s definitely beneficial to get familiar with the docker-compose fundamentals at some point.&lt;/p&gt;
+
+&lt;h2&gt;Installing Docker&lt;/h2&gt;
+
+&lt;p&gt;We&amp;#39;ll need to have Docker installed locally &lt;a href=&quot;https://docs.docker.com/install/&quot;&gt;https://docs.docker.com/install/&lt;/a&gt;. We&amp;#39;ll also need &lt;code&gt;docker-compose&lt;/code&gt; installed, for OSX then this is included when installing Docker, for Linux, it must be installed separately and instructions are here; &lt;a href=&quot;https://docs.docker.com/compose/install/#install-compose&quot;&gt;https://docs.docker.com/compose/install/#install-compose&lt;/a&gt;.&lt;/p&gt;
+
+&lt;h2&gt;Dockerising a Rails Application&lt;/h2&gt;
+
+&lt;p&gt;For an existing Rails application the files below should be added to the root of the project. If generating a new project we should create an empty directory with the name matching the desired name of the Rails project and create the files here. We&amp;#39;ll cover generating the Rails application itself using Docker below.&lt;/p&gt;
+
+&lt;p&gt;First we add a file called &lt;code&gt;Dockerfile&lt;/code&gt; to the project root which defines how to build the runtime environment for our application:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;FROM ruby:2.4.2
+MAINTAINER YOUR_EMAIL
+
+# Install apt based dependencies required to run Rails as
+# well as RubyGems. As the Ruby image itself is based on a
+# Debian image, we use apt-get to install those.
+RUN apt-get update &amp;amp;&amp;amp; apt-get install -y \
+  build-essential \
+  nodejs
+
+
+# Configure the main working directory. This is the base
+# directory used in any further RUN, COPY, and ENTRYPOINT
+# commands.
+RUN mkdir -p /app
+WORKDIR /app
+
+# Copy the Gemfile as well as the Gemfile.lock and install
+# the RubyGems. This is a separate step so the dependencies
+# will be cached unless changes to one of those two files
+# are made.
+COPY Gemfile Gemfile.lock ./
+RUN gem install bundler &amp;amp;&amp;amp; bundle install --jobs 20 --retry 5
+
+COPY . /app
+RUN rm -rf tmp/*
+
+ADD . /app
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;Replacing &lt;code&gt;YOUR_EMAIL&lt;/code&gt; with your email address.&lt;/p&gt;
+
+&lt;p&gt;Then we add a second file called &lt;code&gt;docker-compose.yml&lt;/code&gt; to the project root containing the following:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;version: &amp;quot;3&amp;quot;
+services:
+  app:
+    build: .
+    command: rails server -p 3000 -b &amp;#39;0.0.0.0&amp;#39;
+    volumes:
+      - .:/app:delegated
+    ports:
+      - &amp;quot;3000:3000&amp;quot;
+    environment:
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=postgres
+      - DB_HOST=postgres
+    depends_on:
+      - postgres
+      - redis
+
+
+  postgres:
+    image: postgres:9.4
+    volumes:
+      - postgresdata:/var/lib/postgresql/data
+    ports:
+      - &amp;quot;5432:5432&amp;quot;
+
+  redis:
+    image: redis
+    command: redis-server --appendonly yes
+    volumes:
+      - redisdata:/data
+    ports:
+      - &amp;quot;6379:6379&amp;quot;
+
+volumes:
+  postgresdata:
+  redisdata:
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;h2&gt;The compose file&lt;/h2&gt;
+
+&lt;p&gt;A few elements of this compose file are worth noting as they differ from the many other Rails compose files out there:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;We don&amp;#39;t use &lt;code&gt;links&lt;/code&gt;, these are &lt;a href=&quot;https://docs.docker.com/compose/compose-file/#links&quot;&gt;no longer the recommended approach&lt;/a&gt; for establishing communication between containers. Instead services are available by hostname where the hostname will be the name of the service. E.g. in this case our &lt;code&gt;app&lt;/code&gt; conainer can access postgres via the hostname &lt;code&gt;postgres&lt;/code&gt; and redis via the hostname &lt;code&gt;redis&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;The &lt;code&gt;:delegated&lt;/code&gt; option on the volume mount for our app directory. This is specific to Docker for Mac, although won&amp;#39;t cause problems on other platforms. Details of what this does are &lt;a href=&quot;https://docs.docker.com/compose/compose-file/#caching-options-for-volume-mounts-docker-for-mac&quot;&gt;available here&lt;/a&gt; but it provides a substantial improvement in filesystem performance on OSX, without which day to day development of Rails applications can be painful. If file performance is still not sufficient for your application, it&amp;#39;s worth considering &lt;a href=&quot;http://docker-sync.io/&quot;&gt;Docker Sync&lt;/a&gt; although the 60x slowdown references on that site is substantially reduced by the sue of &lt;code&gt;delegated&lt;/code&gt; on OSX&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h2&gt;Generating a new application&lt;/h2&gt;
+
+&lt;p&gt;When working with an existing Rails application, we can skip this section. Using Docker to generate the entire application is especially useful when trying to maintain no local development environment at all, so we can develop Rails applications without ever needing a local Ruby install.&lt;/p&gt;
+
+&lt;p&gt;One of the quickest ways to generate a new Rails application is simply to use the pre-built Bitnami image and execute:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;docker run --rm -v $(pwd):/app bitnami/rails:latest rails new my_app --database postgresql
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;Which will pull the Bitnami image and generate a new Rails app called &lt;code&gt;my_app&lt;/code&gt; in the current directory.&lt;/p&gt;
+
+&lt;p&gt;Alternatively, if you wish to avoid use of a third party image, alongside our &lt;code&gt;Dockerfile&lt;/code&gt;, we&amp;#39;ll need to add a &lt;code&gt;Gemfile&lt;/code&gt; containing the following:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;source &amp;#39;https://rubygems.org&amp;#39; do
+  gem &amp;quot;rails&amp;quot;,
+end
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;and a blank &lt;code&gt;Gemfile.lock&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;Then execute:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;docker build -t my_name/my_rails_image .
+docker run --rm -v $(pwd):/app my_name/my_rails_image rails new my_app --database postgresql
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;Which builds an image based on our Dockerfile, tags it with the name &lt;code&gt;my_rails_image&lt;/code&gt; and then runs &lt;code&gt;rails new myapp --database postgresql&lt;/code&gt; within a container based on that image and creates a new Rails application as a subfolder.&lt;/p&gt;
+
+&lt;p&gt;Once we have this image built locally, we can re-use it in future with:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;docker run --rm -v $(pwd):/app my_name/my_rails_image rails new my_app --database postgresql
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;h2&gt;Dockerising the application&lt;/h2&gt;
+
+&lt;p&gt;Our &lt;code&gt;docker-compose.yml&lt;/code&gt; file will bring up not only our rails application, but supporting Postgres and Redis instances.&lt;/p&gt;
+
+&lt;p&gt;First we&amp;#39;ll make some changes to our Rails application so that all configuration is taken from environment variables. We&amp;#39;ll then update our &lt;code&gt;docker-compose.yml&lt;/code&gt; file to set some environment variables. This lays the groundwork for using something like Hashicorp&amp;#39;s &lt;a href=&quot;https://github.com/hashicorp/envconsul&quot;&gt;envconsul&lt;/a&gt; for managing configuration in production at a later date. It&amp;#39;s also a core tenant of building &lt;a href=&quot;https://12factor.net/config&quot;&gt;12 factor&lt;/a&gt; applications.&lt;/p&gt;
+
+&lt;p&gt;We&amp;#39;ll begin by modifying &lt;code&gt;config/database.yml&lt;/code&gt; to pull connection details from the environment by adding these three lines:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;username: &amp;lt;%= ENV.fetch(&amp;quot;DB_USERNAME&amp;quot;) %&amp;gt;
+password: &amp;lt;%= ENV.fetch(&amp;quot;DB_PASSWORD&amp;quot;) %&amp;gt;
+host: &amp;lt;%= ENV.fetch(&amp;quot;DB_HOST&amp;quot;) %&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;These can either be added to the &lt;code&gt;default&lt;/code&gt; section or individually to the &lt;code&gt;development&lt;/code&gt; and &lt;code&gt;test&lt;/code&gt; sections.&lt;/p&gt;
+
+&lt;p&gt;It may look like we could skip this entirely and just use the standard &lt;code&gt;DATABASE_URL&lt;/code&gt; environment variable with something like &lt;code&gt;postgres://username:password@postgres/DB_NAME&lt;/code&gt; but this will cause problems when running commands such as &lt;code&gt;rake db:migrate&lt;/code&gt;. These do not reload environment variables between operating on the test and development databases and therefore raise exceptions when trying to apply migrations to test and development as these will both try and use the same database name.&lt;/p&gt;
+
+&lt;p&gt;We can see these map to the values set in the &lt;code&gt;environment&lt;/code&gt; section of our &lt;code&gt;app&lt;/code&gt; definition in &lt;code&gt;docker-compose.yml&lt;/code&gt;:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;services:
+  app:
+    build: .
+    command: rails server -p 3000 -b &amp;#39;0.0.0.0&amp;#39;
+    volumes:
+      - .:/app:delegated
+    ports:
+      - &amp;quot;3000:3000&amp;quot;
+    environment:
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=postgres
+      - DB_HOST=postgres
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;The &lt;code&gt;environment&lt;/code&gt; section allows us to set up the environment variables which will be set within the container. As discussed above, the &lt;code&gt;postgres&lt;/code&gt; service will be available to our container automatically on the hostname &lt;code&gt;postgres&lt;/code&gt; which matches the service name in &lt;code&gt;docker-compose.yml&lt;/code&gt;. The default credentials for the official postgres image are &lt;code&gt;postgres&lt;/code&gt; and &lt;code&gt;postgres&lt;/code&gt; and there&amp;#39;s &lt;a href=&quot;https://hub.docker.com/_/postgres/&quot;&gt;more about customising here&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;We can apply the same approach to the &lt;code&gt;config/secrets.yml&lt;/code&gt; file if needed as well as anywhere else in the application we want to pass in configuration dynamically. If something like &lt;a href=&quot;https://github.com/bkeepers/dotenv&quot;&gt;dotenv&lt;/a&gt; is in use then we can simply update our local &lt;code&gt;.env&lt;/code&gt; file with the above environment variables, rather than defining them in the compose file.&lt;/p&gt;
+
+&lt;h2&gt;Starting the rails application&lt;/h2&gt;
+
+&lt;p&gt;We can now build the docker image based on our &lt;code&gt;Dockerfile&lt;/code&gt; by executing:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;docker-compose build
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;Once this is complete we can start our application with:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;docker-compose up
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;This will start postgres, redis and our rails application, exposing the rails application on port 3000 so that we can access it by visiting &lt;a href=&quot;http://localhost:3000&quot;&gt;http://localhost:3000&lt;/a&gt; as usual.&lt;/p&gt;
+
+&lt;h2&gt;Using with pry&lt;/h2&gt;
+
+&lt;p&gt;If we want to use something like &lt;code&gt;pry-rails&lt;/code&gt; to debug our rails application, instead of executing &lt;code&gt;docker-compose up&lt;/code&gt;, we should use:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;docker-compose run --service-ports app
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;h2&gt;Running one off commands&lt;/h2&gt;
+
+&lt;p&gt;Usually when setting up a rails application we would run &lt;code&gt;rake db:create&lt;/code&gt; and &lt;code&gt;rake db:migrate&lt;/code&gt;. If dockerising an existing application, we&amp;#39;re likely to find that we&amp;#39;re greeted with an error page that the database does not exist.&lt;/p&gt;
+
+&lt;p&gt;To run one off commands using &lt;code&gt;docker-compose&lt;/code&gt; we use the &lt;code&gt;run&lt;/code&gt; command in the format:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;docker-compose run SERVICE_NAME CMD
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;So to run &lt;code&gt;rake db:create db:migrate&lt;/code&gt; within the context of our rails application we would use:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;docker-compose run app rake db:migrate db:create
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;Similarly to start a console we would run:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;docker-compose run app rails console
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;We could run &lt;code&gt;rspec&lt;/code&gt; tests with:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;docker-compose run app rspec spec
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;h2&gt;Adding Gems&lt;/h2&gt;
+
+&lt;p&gt;When adding new gems, we first update the Gemfile, then execute:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;docker-compose run app bundle
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;To update the &lt;code&gt;Gemfile.lock&lt;/code&gt; and then:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;docker-compose build
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;To cache the gems in the image.&lt;/p&gt;
+
+&lt;h2&gt;Bash&lt;/h2&gt;
+
+&lt;p&gt;We can launch a bash shell in our app container using:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;docker-compose run app bash
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;It&amp;#39;s important to bear in mind that each invocation of the above runs in a separate, completely isolated, container and so outside the &lt;code&gt;/app&lt;/code&gt; directory which is bind mounted to our local directory, the file-systems are transitory and independent of one another.&lt;/p&gt;
+
+&lt;p&gt;Being able to run a shell within our app container can be the key to avoiding a lot of frustrating workflow issues when working in a Docker based development environment.&lt;/p&gt;
+
+&lt;p&gt;A great example is when upgrading a Rails version. The workflow is typically:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Update the version of GEM1 within the &lt;code&gt;Gemfile&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;Execute &lt;code&gt;bundle update GEM1&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;Look to see which dependency issues are raised&lt;/li&gt;
+&lt;li&gt;Update the &lt;code&gt;Gemfile&lt;/code&gt; again&lt;/li&gt;
+&lt;li&gt;etc etc&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;This can be slow and painful if a separate &lt;code&gt;docker-compose run app ...&lt;/code&gt; is required every time. Instead we can use &lt;code&gt;docker-compose run app bash&lt;/code&gt; once and then iterate within that container as many times as we want. Once it works we simply jump out of the container and execute &lt;code&gt;docker-compose build&lt;/code&gt; to persist the new gems to the image.&lt;/p&gt;
+
+&lt;h2&gt;Deploying to production&lt;/h2&gt;
+
+&lt;p&gt;Part two covers how to deploy this application to a Kubernetes Cluster on any VPS or Bare Metal provider without having to learn several thousand previously unheard of pieces of terminology.&lt;/p&gt;
+
+&lt;p&gt;Feel free to ping me on twitter &lt;a href=&quot;https://www.twitter.com/talkingquickly&quot;&gt;@TalkingQuickly&lt;/a&gt; with any questions or feedback, in particular I&amp;#39;d love to know if a screencast version of this tutorial would be useful?&lt;/p&gt;
+</content>
+<summary>Docker and Docker Compose reduces bringing up a development environment on any system which supports Docker to a single command. For me this means the time to a working development environment, even on a fresh machine for a project I haven&amp;#39;t worked on for months or years, is just a few seconds.</summary>
+</entry>
+<entry>
+<title>Startup Reading List (2018 Edition)</title>
+<link href="https://www.talkingquickly.co.uk/2017/11/startup-reading-list/" rel="alternate" type="text/html" title="Startup Reading List (2018 Edition)" />
+<published>2017-11-28T08:00:00+00:00</published>
+<updated>2017-11-28T08:00:00+00:00</updated>
+<id>https://www.talkingquickly.co.uk/2017/11/startup-reading-list</id>
+<content type="html" xml:base="https://www.talkingquickly.co.uk/2017/11/startup-reading-list/">&lt;p&gt;Something most of the startup and product people I look up to have in common is that they read, a lot. They also challenge what they read. Rather than reading a chapter, then immediately trying to implement what they&amp;#39;ve read, their books are full of post-it notes and scribbles, dinners and emails are full of debates on one methodology or idea v another.&lt;/p&gt;
+
+&lt;!--more--&gt;
+
+&lt;p&gt;Each has their own constantly evolving approach, but it&amp;#39;s one developed with the benefit of the learnings from many hundreds of other people. This reading list is the books and articles which I return to most frequently which have had the biggest impact on my approach.&lt;/p&gt;
+
+&lt;h2&gt;General &amp;quot;Startups&amp;quot;&lt;/h2&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&quot;http://amzn.to/2ka2IH0&quot;&gt;Founders Stories (Book)&lt;/a&gt;. Insightful series of interviews covering everything from unexpected pivots to the impact startups have on your personal life.&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;http://amzn.to/2BxKUty&quot;&gt;Zero To One (Book)&lt;/a&gt;. Find an important truth not many people agree with you on, aim to build a monopoly business based on that truth. And make sure you nail Sales, Marketing, Hiring etc while you&amp;#39;re at it.&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;http://amzn.to/2ByT5Ge&quot;&gt;High Output Management (Book)&lt;/a&gt;. One of the best books on management I&amp;#39;ve come across. Heavy focus on a managers output being a leveraged function of his direct reports. So to maximise this output, must maximise ability of direct reports to produce output.&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;http://paulgraham.com/startupideas.html&quot;&gt;How to get startup ideas (Article)&lt;/a&gt;. Don&amp;#39;t look for &amp;quot;startup ideas,&amp;quot; Look for problems which need solving, which you care about being solved&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;http://amzn.to/2k8bRjo&quot;&gt;Anything you want (Book)&lt;/a&gt;. Everything should be about customers, good ideas don&amp;#39;t feel special, they feel like common sense that no-one else gets. If you create a business you get to write the rules, make sure they&amp;#39;re the ones you actually want.&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;http://amzn.to/2BxcnM1&quot;&gt;Making Ideas Happen (Book)&lt;/a&gt;. Very practical advice on moving from &amp;quot;here&amp;#39;s an idea&amp;quot; to actually doing something. Arguably more of a productivity book but essential in unstructured environments like startups.&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;http://amzn.to/2kb2KOU&quot;&gt;The art of the start (Book)&lt;/a&gt;. Another really practical look at actually making things happen rather than just talking about them.&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;http://amzn.to/2BtbKD3&quot;&gt;Smart and gets things done (Book)&lt;/a&gt;. Focused on hiring developers but applicable generally, clues in the title, &amp;quot;good&amp;quot; people to hire are smart and get stuff done, the book focuses on how to identify these traits.&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;http://startupclass.samaltman.com/&quot;&gt;How To Start A Startup (Lecture Series from Stanford)&lt;/a&gt;. Incredible series of lectures from people who&amp;#39;ve actually done it. Everything from product to culture to hiring.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h2&gt;Product Development &amp;amp; Product Management&lt;/h2&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&quot;http://amzn.to/2kauV0g&quot;&gt;The Four Steps to the Epiphany (Book)&lt;/a&gt;. The original and most comprehensive book on the &amp;quot;lean&amp;quot; approach to startups and product development.&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;http://amzn.to/2Bm6G2w&quot;&gt;Lean Startup (Book)&lt;/a&gt; (first half). The most accessible and widely read introduction to the &amp;quot;lean&amp;quot; approach to startups and product development. Gets a bit repetitive towards the end.&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://a16z.com/2012/06/15/good-product-managerbad-product-manager/&quot;&gt;Good product manager bad product manager (Article)&lt;/a&gt;. Caveatted with a warning by the author that it was written over 15 years ago but I still think one of the best quick-reads on what&amp;#39;s important from a product manager.&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;http://amzn.to/2kbb411&quot;&gt;Thinking fast and slow (Book)&lt;/a&gt;. One of the most comprehensive introductions to psychological biases, how people think and why people often don&amp;#39;t behave rationally.&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;http://paulgraham.com/ds.html&quot;&gt;Do things that don&amp;#39;t scale (Article)&lt;/a&gt;. The initial push that makes startups take off is almost always hugely unscalable. This isn&amp;#39;t a bad thing.&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;http://www.paulgraham.com/makersschedule.html&quot;&gt;Makers Schedule, Managers Schedule (Article)&lt;/a&gt;. Makers and Managers are doing fundamentally different things which require different ways of working. Don&amp;#39;t fall into the trap of imposing manager ways of working on makers.&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://medium.com/@dunn/get-one-thing-right-89390244c553&quot;&gt;Get one thing right (Article)&lt;/a&gt;. Descriptions in the title.&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://hackernoon.com/12-signs-youre-working-in-a-feature-factory-44a5b938d6a2&quot;&gt;How you know you&amp;#39;re in a feature factory (Article)&lt;/a&gt;. There&amp;#39;s nothing worse than feeling like you&amp;#39;re churning out features without any real understanding of whether they &amp;quot;worked&amp;quot; and what impact they had on the business. It&amp;#39;s also painfully easy to fall into so this post provides a helpful list of things to look out for.&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://hitenism.com/amazon-working-backwards/&quot;&gt;Working backwards (Article)&lt;/a&gt;. In the AWS product team, Amazon write the press release, then the manual, then the spec. Defining the end goal first helps focus everything else.&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://medium.com/@johnpcutler/beat-the-feature-factory-run-pre-cap-design-studios-725d1c83ecd7&quot;&gt;Using design studios to beat the feature factory (Article)&lt;/a&gt;. Similar to the Amazon &amp;quot;press release first&amp;quot; approach but more actionable in smaller organizations. Design the retrospective slide first.&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;http://amzn.to/2k9Pfiy&quot;&gt;Hooked - How to Build Habit Forming Products (Book)&lt;/a&gt; (the first few chapters). This book can get somewhat repetitive but a good look at the principles underlying addictive products and how to leverage this.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h2&gt;Big Picture&lt;/h2&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&quot;http://amzn.to/2Bwyu5h&quot;&gt;The master algorithm (Book)&lt;/a&gt;. The single best book on approaches to machine learning / artificial intelligence I&amp;#39;ve encountered. It&amp;#39;s easy to become skeptical with everyone throwing the term &amp;quot;AI&amp;quot; around. This is the book which made me want to get involved with it again.&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;http://amzn.to/2kb3MdK&quot;&gt;The Hard Thing about Hard Things (Book)&lt;/a&gt;. Drives home that fundamentally there can&amp;#39;t be a &amp;quot;playbook&amp;quot; for solving hard problem x, because it&amp;#39;s never been solved before. Filled with advice and practical experience for how to handle that.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h2&gt;General &amp;quot;Life&amp;quot;&lt;/h2&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&quot;http://amzn.to/2BlfFRq&quot;&gt;Fooled by Randomness (Book)&lt;/a&gt;. Humans tend to see patterns everywhere, even where there aren&amp;#39;t any. Lots of examples of where this tends to happen, how it messes with our decision making and what to do about it. Probably the single book that&amp;#39;s had the biggest impact on how I think about the world.&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;http://amzn.to/2BwRSyZ&quot;&gt;The Four Hour Work Week (Book)&lt;/a&gt;. Initially dismissed this book for the spammy title. When I eventually read it found it densely packed with actionable information about how to allocate time and what conventional business &amp;amp; financial wisdom should be considered harmful. Also strongly recommend the weekly &lt;a href=&quot;https://tim.blog/podcast/&quot;&gt;Tim Ferris Podcast&lt;/a&gt;.&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;http://amzn.to/2k9UzSU&quot;&gt;Elon Musk (Book)&lt;/a&gt;. Whatever you think about the guy, he seems to ship a lot of stuff...&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;http://amzn.to/2k6AOeS&quot;&gt;Surely you&amp;#39;re Joking Mr Feynman (Book)&lt;/a&gt;. The definition of a curious mind, truly amazing man and life.&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;http://amzn.to/2BxtcpV&quot;&gt;How to win friends and influence people (Book)&lt;/a&gt;. Still the definitive guide to improving  people skills.&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;http://amzn.to/2BxcZ4h&quot;&gt;Getting Things Done (Book)&lt;/a&gt;. I&amp;#39;ve never met anyone who actually follows the fiendishly complicated ToDo list system Dave Allen suggests here. But it contains pretty much all the building blocks you&amp;#39;ll ever need to come up with a task tracking system which suits you.&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;http://casnocha.com/2010/05/50-ways-to-expose-yourself-to-randomness.html&quot;&gt;How to expose yourself to randomness (Article)&lt;/a&gt;. Most big things have a huge &amp;quot;luck&amp;quot; component, being exposed to randomness a lot dramatically increases the odds of being lucky.&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://www.stevepavlina.com/blog/2005/05/how-to-become-an-early-riser/&quot;&gt;How to be an early riser (Article)&lt;/a&gt;. Something &lt;em&gt;most&lt;/em&gt; successful people seem to have in common is getting up early, being a morning person is definitely learnable.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h2&gt;Things I&amp;#39;m Embarrassed I Still Haven&amp;#39;t Read&lt;/h2&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&quot;http://amzn.to/2kbKDYV&quot;&gt;The Innovators Dilemma (Book)&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;http://amzn.to/2Bzxeyr&quot;&gt;The Innovators Solution (Book)&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;http://amzn.to/2BxGItS&quot;&gt;The Mythical Man Month (Book)&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;http://amzn.to/2nfeSQ7&quot;&gt;The Everything Store: Jeff Bezos and the Age of Amazon (Book)&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;http://amzn.to/2njxcYq&quot;&gt;The Design of Everyday Things (Book)&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;http://amzn.to/2BzZlNJ&quot;&gt;Don&amp;#39;t Make Me Think (Book)&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;http://amzn.to/2Bxc1ot&quot;&gt;Shoe Dog (Book)&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h2&gt;But I don&amp;#39;t have time!&lt;/h2&gt;
+
+&lt;p&gt;The above could easily take a year to read, my suggested &amp;quot;hack&amp;quot; to gain maximum knowledge for minimum reading would be:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Watch every lecture in the &lt;a href=&quot;http://startupclass.samaltman.com/&quot;&gt;How To Start A Startup (Lecture Series from Stanford)&lt;/a&gt;.&lt;/li&gt;
+&lt;li&gt;Read &lt;a href=&quot;http://paulgraham.com/startupideas.html&quot;&gt;How to get startup ideas&lt;/a&gt; and &lt;a href=&quot;http://paulgraham.com/ds.html&quot;&gt;Do things that don&amp;#39;t scale&lt;/a&gt; by Paul Graham. Generally &lt;a href=&quot;http://www.paulgraham.com/articles.html&quot;&gt;everything PG has written&lt;/a&gt; has a good return on time taken to read v insight provided.&lt;/li&gt;
+&lt;li&gt;Read &lt;a href=&quot;http://amzn.to/2kauV0g&quot;&gt;The Four Steps to the Epiphany&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+</content>
+<summary>Something most of the startup and product people I look up to have in common is that they read, a lot. They also challenge what they read. Rather than reading a chapter, then immediately trying to implement what they&amp;#39;ve read, their books are full of post-it notes and scribbles, dinners and emails are full of debates on one methodology or idea v another.</summary>
+</entry>
+<entry>
+<title>2015 In Review</title>
+<link href="https://www.talkingquickly.co.uk/2016/05/2015-in-review/" rel="alternate" type="text/html" title="2015 In Review" />
+<published>2016-05-06T08:00:00+00:00</published>
+<updated>2016-05-06T08:00:00+00:00</updated>
+<id>https://www.talkingquickly.co.uk/2016/05/2015-in-review</id>
+<content type="html" xml:base="https://www.talkingquickly.co.uk/2016/05/2015-in-review/">&lt;p&gt;May 2016 seems like a reasonable interval to have given 2015 to sink in. 2015 was expected to begin at a Full Moon Party on one or other island off the coast of Thailand. Instead it began with a hastily booked flight back to London and a week or so recovering from three days of hallucinations and dehydration on Aonang - they really do food poisoning properly there. Can&amp;#39;t say I&amp;#39;m proud for bailing due to food poisoning; live and learn.&lt;/p&gt;
+
+&lt;!--more--&gt;
+
+&lt;p&gt;But from a shaky start came one of the best years yet. From 13 countries to being hypnotised on stage by Derren Brown in front of 5000 people, it worked out pretty well.&lt;/p&gt;
+
+&lt;h2&gt;Products&lt;/h2&gt;
+
+&lt;h3&gt;Make It With Code&lt;/h3&gt;
+
+&lt;p&gt;As promised in 2015, Make It With Code, our project to teach none technical people to code started to roll out industry specific courses. Our first - Coding For Community Managers - with the awesome CMX hub in San Francisco.&lt;/p&gt;
+
+&lt;p&gt;The success stories have been heartening, from people getting full time to jobs off the back of what they started learning with us to those who&amp;#39;ve freed up days every month with what they&amp;#39;ve been able to automate. That&amp;#39;s why we created it.&lt;/p&gt;
+
+&lt;p&gt;But we&amp;#39;re firm believers in the rule of 10x. To be a game changing business, what we create has to be 10 times better than what&amp;#39;s out there now.&lt;/p&gt;
+
+&lt;p&gt;Our mission was to empower none technical people to use code to make their jobs better. We got people there faster and with less time required than most of what&amp;#39;s out there, but it&amp;#39;s still a lot of time.&lt;/p&gt;
+
+&lt;p&gt;Our unique approach to teaching had many benefits over competing ones, but it&amp;#39;s just not 10x better.&lt;/p&gt;
+
+&lt;p&gt;Our mission is still better met by those people becoming masters of Zapier, Google Sheets and Typeform, then using those to glue together SaaS products to automate their day to day work.&lt;/p&gt;
+
+&lt;p&gt;This is not however a post mortem.&lt;/p&gt;
+
+&lt;p&gt;Whilst we took the decision in mid 2015 that Make It With Code will not be continuing as a for-profit entity, we&amp;#39;re proud of the courses and methodology we created. If people want to learn to code in a practical way, we&amp;#39;d still love them to give it a go.&lt;/p&gt;
+
+&lt;p&gt;All Make It With Code courses will be available free of charge, with
+recommendations for 3rd party cloud IDE&amp;#39;s.&lt;/p&gt;
+
+&lt;p&gt;We&amp;#39;re equally proud of the technology we created. Dacker, our open source docker orchestration tool is already open source and on the list of &amp;quot;blog posts I really must write&amp;quot; is to document how anyone can provide create browser based IDE&amp;#39;s using Docker, Codebox and some Ruby magic.&lt;/p&gt;
+
+&lt;h3&gt;Reliably Deploying Rails&lt;/h3&gt;
+
+&lt;p&gt;When I accidentally started writing Reliably Deploying Rails Applications in late 2013, I estimated a solid three months to get it finished.&lt;/p&gt;
+
+&lt;p&gt;17 months later - sitting in an AirBnB in London using a hacked together Ubuntu laptop because everything I owned had been stolen in Budapest the week before - I ran out of excuses. I set to the &amp;quot;Percentage Complete&amp;quot; to 100%.&lt;/p&gt;
+
+&lt;p&gt;Promptly nobody noticed and nothing changed. Sales continued at the same rate and I made changes and tweaks as readers suggested them.&lt;/p&gt;
+
+&lt;p&gt;The entire book has been re-written twice based on feedback from an amazing community of readers who have been unbelievably supportive in suggesting where things could be clearer or add more value. &amp;quot;Complete&amp;quot; doesn&amp;#39;t mean it will stop receiving updates, but that I&amp;#39;m banning myself from another re-write in the near future.&lt;/p&gt;
+
+&lt;p&gt;There are thousands of things I&amp;#39;d like to improve, it&amp;#39;s far too long overall and some important sections are too short. Bits of it were outdated before I&amp;#39;d finished writing them and of course I&amp;#39;ve learned things since I wrote it which I&amp;#39;d like to incorporate.&lt;/p&gt;
+
+&lt;p&gt;But writing it, speaking about it at Railsconf and chatting to hundreds of readers has been a spectacularly positive experience.&lt;/p&gt;
+
+&lt;p&gt;It&amp;#39;s now sold about 1200 copies which gives revenue of around $20k as well as being translated into both Russian &amp;amp; Chinese. It continues to sell a few copies every week organically. I cannot reccommend Leanpub enough to anyone who&amp;#39;s thinking of writing a technical book.&lt;/p&gt;
+
+&lt;h3&gt;Active In Time&lt;/h3&gt;
+
+&lt;p&gt;Since 2013 I&amp;#39;ve been leading the backend team at Active In Time to provide both a timetabling system used by the likes of the London Olympic Pool and the swimming app Speedo Fit (tm).&lt;/p&gt;
+
+&lt;p&gt;Both the experience of managing the technical side of the roll-out across Asia, Europe &amp;amp; America and of working with Dan, Chris, Kev, Ted, Hector and the rest of the team has been amazing.&lt;/p&gt;
+
+&lt;p&gt;It&amp;#39;s their flexibility and open-ness to modern working styles which has allowed me to live abroad and spend over a year traveling while I work.&lt;/p&gt;
+
+&lt;p&gt;As of July 2015 I&amp;#39;ve been scaling back from my work on Active In Time to focus on...&lt;/p&gt;
+
+&lt;h3&gt;Catapult&lt;/h3&gt;
+
+&lt;p&gt;It often seems that there are relatively few large industries which technology has not changed completely. Temporary recruitment is one of those.&lt;/p&gt;
+
+&lt;p&gt;The existing solution; temporary recruitment agencies, are expensive, opaque, and - based on many conversations with both users of these agencies and their staff - provide a poor quality experience to both employers and temps.&lt;/p&gt;
+
+&lt;p&gt;Catapult is an on demand staffing platform focussed on always putting staffs interests first. We provide staff to the retail, office and hospitality sectors. This ranges from providing sickness cover in under an hour to allowing businesses to dynamically scale up and down their staffing based on how busy they are.&lt;/p&gt;
+
+&lt;p&gt;In Q4 2015, Steffen, Oli and I raised GBP1m in seed funding from a range of extremely supportive investors. On the tech side, having begun development in September 2015; myself, James &amp;amp; Kev released the web based employer interface and iOS + Android candidate apps at the start of November. After a successful closed Beta November - January, the platform was opened up to all of London and is currently growing rapidly.&lt;/p&gt;
+
+&lt;h2&gt;Speaking And Conferences&lt;/h2&gt;
+
+&lt;h3&gt;Railsconf 2015&lt;/h3&gt;
+
+&lt;p&gt;After 2014&amp;#39;s beginners talk on deployment, 2015 called for something more advanced. At Make It With Code, Docker isn&amp;#39;t just something we&amp;#39;ve used to deploy, it&amp;#39;s a core part of our application.&lt;/p&gt;
+
+&lt;p&gt;Using Dockers API, our Rails application orchestrates and manages a fleet of containers, providing a full cloud based IDE for each student. This talk focused on how this deep integration has allowed us to add value where competitors couldn&amp;#39;t.&lt;/p&gt;
+
+&lt;p&gt;The talk seemed to be well received and was great fun to give. Based on the questions afterwards, there&amp;#39;s still a gap between &amp;quot;Docker is going to be big&amp;quot; and &amp;quot;How does this actually make me life easier&amp;quot;.&lt;/p&gt;
+
+&lt;iframe width=&quot;560&quot; height=&quot;315&quot;
+src=&quot;https://www.youtube.com/embed/NGcT0dGivoM&quot; frameborder=&quot;0&quot;
+allowfullscreen&gt;&lt;/iframe&gt;
+
+&lt;h3&gt;Refresh Conference&lt;/h3&gt;
+
+&lt;p&gt;I was incredibly excited to be invited to give a talk at the first Refresh Conference, organised by TransferWise. Tallinn is one of my favourite cities so an excuse to spend a little longer there was welcomed!&lt;/p&gt;
+
+&lt;p&gt;Instead of focusing on &amp;quot;how to do this,&amp;quot; this one focused on &amp;quot;how not to do this,&amp;quot; specifically all of things I got wrong when I started deploying Rails applications.&lt;/p&gt;
+
+&lt;iframe width=&quot;560&quot; height=&quot;315&quot;
+src=&quot;https://www.youtube.com/embed/umVGZVgHHIU&quot; frameborder=&quot;0&quot;
+allowfullscreen&gt;&lt;/iframe&gt;
+
+&lt;h3&gt;Tech Crunch Disrupt Hackathon&lt;/h3&gt;
+
+&lt;p&gt;In keeping with tradition, OldWhiteWizard and I totally failed to plan anything in advance of the Tech Crunch Disrupt Hackathon.&lt;/p&gt;
+
+&lt;p&gt;We ended up building a chatbot, based around the Telegram API, which analyses how the members of the chat talk about different TV Shows and made recommendations accordingly.&lt;/p&gt;
+
+&lt;p&gt;Possibly the highlight was how many people didn&amp;#39;t appreciate that naming it &amp;quot;Murdoch&amp;quot; was a tongue in cheek reference to Sky&amp;#39;s role as a sponsor and the phone hacking allegations around our favorite tabloid toting Rupert.&lt;/p&gt;
+
+&lt;p&gt;You can watch the pitch and read what Techcrunch had to say about it
+here
+&lt;a href=&quot;https://techcrunch.com/2015/12/06/murdoch-eavesdrops-on-your-chats-to-give-recommendations/&quot;&gt;https://techcrunch.com/2015/12/06/murdoch-eavesdrops-on-your-chats-to-give-recommendations/&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;The app was well received and we won the Sky prize. On a more serious note the underlying principles - that the next big app ecosystem will be built around chat - is one I strongly believe in.&lt;/p&gt;
+
+&lt;h2&gt;Health&lt;/h2&gt;
+
+&lt;p&gt;2015 was a little sideways for health, for most of Q4 I had a good gym routine but running, nutrition and the like suffered while I was traveling.&lt;/p&gt;
+
+&lt;h2&gt;Travel&lt;/h2&gt;
+
+&lt;p&gt;This was definitely a good year for travel;&lt;/p&gt;
+
+&lt;h3&gt;Amsterdam&lt;/h3&gt;
+
+&lt;p&gt;For the gory details &lt;a href=&quot;/travel/2015-05-25-dispatches-amsterdam/&quot;&gt;check out the dispatches&lt;/a&gt;, this is still my favourite wine list of all time:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/images/travel/amsterdam/wine-list.jpg&quot; alt=&quot;Wine List, Red or White&quot;&gt;&lt;/p&gt;
+
+&lt;h3&gt;Prague&lt;/h3&gt;
+
+&lt;p&gt;My first visit to Prague was about seven years ago and the main surviving memory was bar crawls. This time it was ham, a lot of ham.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/images/travel/prague/ham.jpg&quot; alt=&quot;A lot of ham&quot;&gt;&lt;/p&gt;
+
+&lt;p&gt;More in dispatches.&lt;/p&gt;
+
+&lt;h3&gt;Budapest&lt;/h3&gt;
+
+&lt;p&gt;Budapest was one of the more eventful destinations on this trip. From city tours in taxi&amp;#39;s trying to find a hospital &lt;a href=&quot;/travel/2015-06-12-failing-hard-in-hungary/&quot;&gt;to having all of my possessions stolen&lt;/a&gt;, somehow it&amp;#39;s still one of my favourite cities of all time.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/images/travel/budapest/parliament.jpg&quot; alt=&quot;Budapest Parliament&quot;&gt;&lt;/p&gt;
+
+&lt;h3&gt;Hamburg&lt;/h3&gt;
+
+&lt;p&gt;Having spent less than 24 hours in Hamburg, I&amp;#39;m not sure I can claim to have learned a huge amount about the city. But there was some incredible rock n roll and some very confusing ticket machines. And a really complicated card game.&lt;/p&gt;
+
+&lt;h3&gt;Berlin&lt;/h3&gt;
+
+&lt;p&gt;For some reason when I think of Berlin I think of Vietnamese food and breakfast. Ana and I stumbled over this breakfast whilst completely starving and starting to wonder if the late night clubs meant that Saturday breakfast was actually served on Sunday morning.&lt;/p&gt;
+
+&lt;h3&gt;Warsaw&lt;/h3&gt;
+
+&lt;p&gt;Completely inappropriately the first thing Warsaw will always make me think of is giant American style burgers. For logistical reasons I actually ended up in Warsaw several times, and this burger joint was my &amp;quot;safe haven&amp;quot; when I needed a guaranteed good meal.&lt;/p&gt;
+
+&lt;p&gt;What really got me about Warsaw was how kind people were once they got chatting. I co-worked there for several days, shared cakes with them in the communal kitchen and at the end they wouldn&amp;#39;t let me pay a penny.&lt;/p&gt;
+
+&lt;h3&gt;Vienna&lt;/h3&gt;
+
+&lt;p&gt;&amp;quot;Fancy going for a swim in the Danube?&amp;quot;. Yes. Yes I did. Sometimes my tenancy to blindly say yes without really considering what it is works out rather well.&lt;/p&gt;
+
+&lt;p&gt;Ten minutes later, we&amp;#39;d hired bikes and were cycling through Vienna in the late afternoon sun in search of the bit of the Danube which was good for swimming. Or Something.&lt;/p&gt;
+
+&lt;p&gt;Forty minutes, some questionable maneuvers down one way streets and the odd U-turn and our money, keys and phones were &amp;quot;hidden&amp;quot; in our shoes on a jetty. A healthy British dose of &amp;quot;it&amp;#39;s nice once you&amp;#39;re in,&amp;quot; &amp;quot;is it? is it really?&amp;quot; and we were swimming towards the sound of reggae.&lt;/p&gt;
+
+&lt;p&gt;A brief detour around a herd (yep herd, sticking with it) of swans who were most definitely not more scared of us than we were of them and we were floating in the evening sun, watching live reggae being performed in front of a makeshift speaker stack.&lt;/p&gt;
+
+&lt;h3&gt;Tallinn&lt;/h3&gt;
+
+&lt;p&gt;It&amp;#39;s kind of hard not to fall in love with the Baltics. I arrived in Tallinn in July when it barely gets dark, giving nights out a slightly surreal feeling.&lt;/p&gt;
+
+&lt;p&gt;One of the creepiest places I&amp;#39;ve ever been is the old soviet prison there, it&amp;#39;s something straight out of a horror movie;&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/images/2015-in-review/travel/prison-tallin.jpg&quot; alt=&quot;Soviet Prison inRiga&quot;&gt;&lt;/p&gt;
+
+&lt;h3&gt;Riga&lt;/h3&gt;
+
+&lt;p&gt;Two things stand out, the &lt;a href=&quot;https://www.tripadvisor.co.uk/ShowUserReviews-g274967-d1869541-r80012720-Sefpavars_Vilhelms-Riga_Riga_Region.html&quot;&gt;pancake buffet&lt;/a&gt;:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/images/2015-in-review/travel/riga-pancakes.jpg&quot; alt=&quot;Pancake BuffetRiga&quot;&gt;&lt;/p&gt;
+
+&lt;p&gt;and Elvis reborn:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/images/2015-in-review/travel/riga-rock-n-roll.jpg&quot; alt=&quot;Elvis Reborn&quot;&gt;&lt;/p&gt;
+
+&lt;h3&gt;Vilnius&lt;/h3&gt;
+
+&lt;p&gt;Probably the friendliest place I&amp;#39;ve been to - which seems to suprise all of the Lithuanians I meet in London. It was nearly impossible to sit down in a bar without a stranger starting a conversation.&lt;/p&gt;
+
+&lt;p&gt;It&amp;#39;s also one of the best dressed cities I visited. Vintage shops are everywhere and the city seems to be full of people who actually know what to look for when going into one. Tom - the best dressed traveler I&amp;#39;ve ever encountered, fitted right in.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/images/2015-in-review/travel/vilnius-best-dressed.jpg&quot; alt=&quot;The Best Dressed Traveller&quot;&gt;&lt;/p&gt;
+
+&lt;h3&gt;Krakow&lt;/h3&gt;
+
+&lt;p&gt;It&amp;#39;s the journey to Krakow I&amp;#39;ll never quite forget. After literally nearly some planning we boarded a bus from Vilnius to Warsaw where we would &amp;quot;get on a bus or train or something&amp;quot; to Krakow. Yep, because that&amp;#39;s how it works.&lt;/p&gt;
+
+&lt;p&gt;On arrival in Warsaw we walked around looking for the main bus station. The main bus station is not in the middle of Warsaw. After a minor battle with public transport and some more aimless walking, our elation at finding it was short lived - the next bus with seats available was in two days.&lt;/p&gt;
+
+&lt;p&gt;We eventually found a train from where we first started, the rest of Krakow is something of a blur, fairly sure there were Irish Accents involved.&lt;/p&gt;
+
+&lt;h3&gt;Paris&lt;/h3&gt;
+
+&lt;p&gt;After a brief stopover in Berlin, I arrived at Charles De Galle having not slept for over 30 hours. Dazed and confused I defaulted to a place of safety.&lt;/p&gt;
+
+&lt;p&gt;I&amp;#39;m still not sure which one of the Mutinerie crew came down and put a blanket over me when I arrived unannounced, having not been a member for over a year, and went straight downstairs to the quiet room to sleep. But the fact someone did is a tribute to what makes Mutinerie so much more than just a co-working space.&lt;/p&gt;
+
+&lt;h3&gt;Portugal&lt;/h3&gt;
+
+&lt;p&gt;A working trip to Portugal with the AIT crew. I still can&amp;#39;t get over the combiantion of wide, banked, US style Freeway exits, which everyone takes at great speed - terminated by blind corners and roundabouts. Utterly terrifying!&lt;/p&gt;
+
+&lt;h3&gt;Perth&lt;/h3&gt;
+
+&lt;p&gt;I&amp;#39;m starting to understand why people keep moving to Australia. I&amp;#39;m not sure if it&amp;#39;s the proximity of the beach, the fact that - sweeping statement  warning - Australians just generally seem to be nice easy going people, or that the weather is so damn good. But I&amp;#39;d be lying if I said I wasn&amp;#39;t tempted.&lt;/p&gt;
+
+&lt;h3&gt;Margaret River&lt;/h3&gt;
+
+&lt;p&gt;There are so many very eloquent things I should saw about Margret River. About the scenery, the beaches, the subtle flavors of the wine, things like that. Instead I&amp;#39;m left with no choice but to talk about the free food, and free wine. Just so much of it.&lt;/p&gt;
+
+&lt;p&gt;The Chocolate factory has huge bowls of chocolate you just help yourself from. You arrive at a vineyard and are presented with at least five or six wines to try. I ate my bodyweight in different breads, olives &amp;amp; dips containing enough Chilli to kill a man. All for free.&lt;/p&gt;
+
+&lt;h3&gt;Austria&lt;/h3&gt;
+
+&lt;p&gt;What happened in Austria stays in Austria. But I can confirm it is possible - but not advisable - to drink a Ski Chalet bar out of Jaegarmeister.&lt;/p&gt;
+
+&lt;h2&gt;Derren Brown? Huh?&lt;/h2&gt;
+
+&lt;p&gt;In a wonderful series of accidents, not only were our tickets to see Derren Browne - the stage hypnotist - upgraded at the last minute, I ended up on stage, being hypnotised for the finale.&lt;/p&gt;
+
+&lt;p&gt;I&amp;#39;m still not allowed to say what actually happened. But as proof, here&amp;#39;s a photo which definitely shouldn&amp;#39;t exist of me completely under, while on stage in front of 5000 people:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/images/2015-in-review/derren-brown.jpeg&quot; alt=&quot;Elvis Reborn&quot;&gt;&lt;/p&gt;
+
+&lt;p&gt;It&amp;#39;s been a good year!&lt;/p&gt;
+</content>
+<summary>May 2016 seems like a reasonable interval to have given 2015 to sink in. 2015 was expected to begin at a Full Moon Party on one or other island off the coast of Thailand. Instead it began with a hastily booked flight back to London and a week or so recovering from three days of hallucinations and dehydration on Aonang - they really do food poisoning properly there. Can&amp;#39;t say I&amp;#39;m proud for bailing due to food poisoning; live and learn.</summary>
+</entry>
+<entry>
+<title>What I&amp;#39;d tell myself about startups if I could go back 5 years.</title>
+<link href="https://www.talkingquickly.co.uk/2015/04/what-id-tell-myself-about-startups/" rel="alternate" type="text/html" title="What I'd tell myself about startups if I could go back 5 years." />
+<published>2015-04-02T11:34:00+00:00</published>
+<updated>2015-04-02T11:34:00+00:00</updated>
+<id>https://www.talkingquickly.co.uk/2015/04/what-id-tell-myself-about-startups</id>
+<content type="html" xml:base="https://www.talkingquickly.co.uk/2015/04/what-id-tell-myself-about-startups/">&lt;p&gt;This is, in no particular order, what I&amp;#39;d tell myself about startups if I could go back in time to when I first got involved. Which is probably the same as what I&amp;#39;ve learned. This is most definitely not advice, the &amp;quot;you&amp;quot; here is directed at me. So is &amp;quot;I&amp;quot;. Grammar is hard.&lt;/p&gt;
+
+&lt;!--more--&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;You&amp;#39;re definitely going to end up building too much and shipping too late. Be obsessive about avoiding this&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Someone&amp;#39;s always already working on the same idea and that&amp;#39;s not a bad thing&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Always refuse if someone asks you to sign an NDA before hearing their idea&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Like it or not, most networking in London is focused around drinking. Find a way to deal with that without having a constant hangover&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;The people who are really getting somewhere aren&amp;#39;t the people who are always out for drinks&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Linear growth can be worse than no growth&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Most people who talk about failing fast, aren&amp;#39;t actually practicing this&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;It&amp;#39;s really easy to kid yourself that you&amp;#39;re &amp;quot;doing customer development&amp;quot; when actually you&amp;#39;re finding ways to make what your customers are saying fit with what you want to build&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Everyone has a hidden stash of domains they&amp;#39;ve never used&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;It&amp;#39;s really easy to become hyper-critical and respond to every idea with &amp;quot;yeah but that won&amp;#39;t work because of x&amp;quot;. This is lazy, don&amp;#39;t do it.&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Be especially careful to avoid the above when talking to people who are new to the scene. Call out other people who do it&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;It&amp;#39;s really hard to listen to someone pitching an idea you&amp;#39;ve seen fail several times already and focus on working out if there&amp;#39;s something slightly different and interesting there&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Someone being a technically competent developer does not mean they know how to ship things. I&amp;#39;d always rather work with someone who ships over someone who&amp;#39;s technically brilliant&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;The programming language/ framework wars are great fun in the pub, but of limited value in real life&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;A good developer can pick up any language or platform in a few weeks&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;I still don&amp;#39;t know any real investors&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Constantly exaggerating how well you&amp;#39;re doing can be very tiring. It makes it harder to publicly celebrate the real victories&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;It&amp;#39;s really hard to build a product if you don&amp;#39;t have a big personal investment in the problem it solves&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Falling in love with a product (rather than the problem) is really dangerous&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;You can get away without knowing how a hash table works, but it&amp;#39;s really satisfying when you eventually learn it&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Same goes for Big O notation&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Overnight success isn&amp;#39;t a thing. The Social Network is still a great movie&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;I still don&amp;#39;t understand PR&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Most technical solutions are trivial compared to how you get the product into peoples hands&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Make something people want is probably a less useful heuristic than make something you want&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;But you wanting it doesn&amp;#39;t mean enough people want it for it to be a business&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;If you don&amp;#39;t have first hand experience of an industry, you&amp;#39;re probably wrong about how it works, what problems they have and so how they should be solved. Talk to people&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;&amp;quot;Ads&amp;quot; are where business models go to die&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;&amp;quot;We&amp;#39;ll monetize the data&amp;quot; is the new &amp;quot;Ads&amp;quot;&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;The people you end up wanting to work with (and help) are the ones who always try and work out how they can help you. Be more like them&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;But get really good at asking for things. Most people will give you a discount for no reason other than you asked. If you see someone important and influential, introduce yourself&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Get good at saying no to things, from people asking you for discounts to interesting projects you really don&amp;#39;t have enough time for&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Think hard about a pivot which makes good business sense but leads to a product you no longer care about&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Writing (blogging, books, journaling) is a really positive experience&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Don&amp;#39;t pay too much attention to internet comments about something you&amp;#39;ve written, there&amp;#39;s always someone who didn&amp;#39;t like one particular sentence (see point about trolls below)&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;One troll can wipe out a hundred positive interactions, be ruthless in keeping them out of your communities&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;If you end up pitching to someone over coffee, ask to hear their pitch afterwards&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Only say you&amp;#39;re going to introduce someone or send them something if you&amp;#39;re actually going to do it. People quickly get a reputation for never following through&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Show don&amp;#39;t tell. &amp;quot;I&amp;#39;m going to build this amazing thing&amp;quot; is a LOT less interesting than &amp;quot;I&amp;#39;ve built this slightly crappy thing that actually does something&amp;quot;. EVERYONE is GOING to build something, most people never do&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Building things is awesome, don&amp;#39;t get too caught up with the whole &amp;quot;Lean Startup Landing Page&amp;quot; mindset&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Lean Startup is awesome, but it&amp;#39;s a pamphlet not a book, read the first few chapters and you&amp;#39;ll get the idea. Four steps to the epiphany is more technical and probably a better book&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Most startup advice is terrible and the good advice is usually obvious. Everyone will give different advice, trust your gut&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Except when it comes to what your customers want, then ignore your gut and trust them&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;No-one has ever used a Bitcoin ATM for practical reasons&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Do back of napkin financial forecasts for every potential business model you come up with, just to see if it&amp;#39;s in the right ballpark to a couple of orders of magnitude&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;It&amp;#39;s really easy to automatically dismiss everyone who starts a conversation with &amp;quot;I&amp;#39;m looking for a technical co-founder&amp;quot;. Doing this means you miss talking to some interesting people. But be upfront that you&amp;#39;re not that co-founder so no-one feels like their time is wasted&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Trying to raise money and apply to accelerators is a full time job. You&amp;#39;re probably either building or fund raising. Not both. If in doubt, choose building&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;The solution to many, many problems, is not technical. That won&amp;#39;t stop people trying solve them with apps&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Facebook is the Facebook for X&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;The idea you laughed at when you saw them pitch at a hackathon may well be the one that&amp;#39;s still alive and kicking long after whatever you pitched fails&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;If there are people who genuinely like failing, I&amp;#39;ve never met them&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;That was not &amp;quot;your idea&amp;quot; unless you shipped something, otherwise I invented Facebook, Nest and Oculus Rift&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;People don&amp;#39;t steal ideas. Tell as many people as possible. Never ask someone to sign an NDA before hearing your idea, you&amp;#39;ll instantly lose all credibility&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Being friends with somebody is not the same as being able to work well with them&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Small teams can move VERY fast, be really careful getting extra people involved in any project where agility is important&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Multi-tasking isn&amp;#39;t a thing, switching costs are huge, do one thing at a time and do it really well. Find a way to block out interruptions&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Read every &lt;a href=&quot;http://www.paulgraham.com/articles.html&quot;&gt;essay&lt;/a&gt; Paul Graham has written&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Tech news (and news in general) has a very low return on time invested. Prefer books and conversations&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Read &lt;a href=&quot;http://www.amazon.co.uk/Founders-Work-Stories-Startups-Problem-Solution/dp/1430210788&quot;&gt;Founders Stories&lt;/a&gt;, &lt;a href=&quot;http://www.amazon.co.uk/Fooled-Randomness-Hidden-Chance-Markets-ebook/dp/B002RI9BH6/&quot;&gt;Fooled By Randomness&lt;/a&gt; and &lt;a href=&quot;http://www.amazon.co.uk/Four-Steps-Epiphany-Steve-Blank-ebook/dp/B00FLZKNUQ/&quot;&gt;The Four Steps to the Ephiphany&lt;/a&gt;&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;The logo doesn&amp;#39;t matter at the start, find a simple text based logo you can re-use for different projects&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;If you possibly can, open source and write up any side project. Every now and then you&amp;#39;ll meet somebody really interesting as a result&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Regularly working 12 hour days is probably never a good idea. If this is happening a lot, find a way to optimise&lt;/p&gt;&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Talk to everybody&lt;/p&gt;&lt;/li&gt;
+&lt;/ol&gt;
+</content>
+<summary>This is, in no particular order, what I&amp;#39;d tell myself about startups if I could go back in time to when I first got involved. Which is probably the same as what I&amp;#39;ve learned. This is most definitely not advice, the &amp;quot;you&amp;quot; here is directed at me. So is &amp;quot;I&amp;quot;. Grammar is hard.</summary>
+</entry>
+<entry>
+<title>2014 In Review</title>
+<link href="https://www.talkingquickly.co.uk/2015/02/2014-in-review/" rel="alternate" type="text/html" title="2014 In Review" />
+<published>2015-02-12T08:00:00+00:00</published>
+<updated>2015-02-12T08:00:00+00:00</updated>
+<id>https://www.talkingquickly.co.uk/2015/02/2014-in-review</id>
+<content type="html" xml:base="https://www.talkingquickly.co.uk/2015/02/2014-in-review/">&lt;p&gt;Having reached 2015 I&amp;#39;m forced to acknowledge that 2013 In Review is probably not going to happen. I might even remove it from my ToDo list where it&amp;#39;s now the oldest item after returning the copy of &amp;quot;Chaos&amp;quot; I borrowed from a public library in my first year of university, six years of fines are going to hurt. In the spirit of &lt;a href=&quot;&quot;&gt;it probably isn&amp;#39;t a big deal&lt;/a&gt; I&amp;#39;ll dive straight into 2014 but with a scattering of confusing references to 2013 for context.&lt;/p&gt;
+
+&lt;!--more--&gt;
+
+&lt;h2&gt;Products&lt;/h2&gt;
+
+&lt;p&gt;One of my long term goals is to shift my income away from consulting and towards products. 2014 was the best year yet for this and hopefully 2015 will see this trend continue.&lt;/p&gt;
+
+&lt;h3&gt;Make It With Code&lt;/h3&gt;
+
+&lt;p&gt;In January 2014, &lt;a href=&quot;http://www.twitter.com/hrowalters&quot;&gt;Huw&lt;/a&gt;, &lt;a href=&quot;http://www.twitter.com/bec_pr&quot;&gt;Rebecca&lt;/a&gt; and I sat in a freezing cafe in Paris and talked about learning to code. In particular how it was broken. Our expertise was formidable, I&amp;#39;d learned to code, Rebecca was learning and Huw was used to trying to block out me talking about code. We were nearly experts already.&lt;/p&gt;
+
+&lt;p&gt;Our premise was simple, good developers learned by hacking on things, not by trawling through reams of dry theory. So why was no-one teaching this way. We put pen to paper and the result was &lt;a href=&quot;/2014/01/teaching-people-to-code/&quot;&gt;this&lt;/a&gt; blog post. Our offer to write a course which taught this way was taken up by a surprisingly large number of people on Reddit and within a day we had over 60 people willing to pay for our experiment.&lt;/p&gt;
+
+&lt;p&gt;What followed was ten weeks of madness which when squinted at carefully, reveals what turned out to be a surprisingly effective method. The first of ten lessons was finished hours before the first group started. Having been written by me and tested by Huw and Rebecca, both for content and the ratio of sarcastic jokes to informational (1:10 turns out to be the perfect balance) the lesson went out to the first group. We&amp;#39;d then begin the whole process again for the next lesson alongside improving the first one based on feedback before sending it out to the next weeks group.&lt;/p&gt;
+
+&lt;p&gt;After ten weeks, ten lessons and countless revisions, we were exhausted but it seemed to have worked! Feedback from students was great and even more excitingly, they were sending us real things they&amp;#39;d been able to make using what they&amp;#39;d learned.&lt;/p&gt;
+
+&lt;p&gt;Fast forward to the end of 2014 and we&amp;#39;re seeing good organic growth of our general &amp;quot;introduction to code&amp;quot; course (&lt;a href=&quot;http://www.makeitwithcode.com&quot;&gt;http://www.makeitwithcode.com&lt;/a&gt;) and just launched our first industry specific course &lt;a href=&quot;https://www.makeitwithcode.com/community-professionals&quot;&gt;coding for community professionals&lt;/a&gt; in partnership with CMX Media in San Francisco. Our tech&amp;#39;s a bit more advanced to with a completely custom platform for delivering lesson content as well as a Docker based Cloud IDE for every student.&lt;/p&gt;
+
+&lt;p&gt;2015 will see us launch several more industry specific courses as well as experiment with in person teaching and multiple delivery platforms.&lt;/p&gt;
+
+&lt;h3&gt;Reliably Deploying Rails Applications&lt;/h3&gt;
+
+&lt;p&gt;Somewhere towards the end of 2013, patio11 on HN mentioned that someone should write a book about how to deploy Rails Applications without tearing your hair out. I commented that I&amp;#39;d been collating notes on that topic for a while and was thinking of releasing it as book sometime. I woke up to several emails from people saying they&amp;#39;d buy such a book and asking for copies of it. So somewhat impulsively I decided to write it.&lt;/p&gt;
+
+&lt;p&gt;Optimistically thinking it would take around three months to write and with a goal of selling ten copies, I released the first chapter on the amazing &lt;a href=&quot;http://leanpub.com/deploying_rails_applications&quot;&gt;Leanpub&lt;/a&gt;, set a fairly low price and starting writing. 14 Months, two total re-writes and it&amp;#39;s now about 90% finished. In this period it&amp;#39;s sold around 850 copies and made a little over $15,000. The amazing Obie Fernandez, author of The Rails Way has kindly agreed to write a foreword and the &amp;#39;final&amp;#39; version should be out by April this year.&lt;/p&gt;
+
+&lt;h3&gt;Deploying Rails with Docker&lt;/h3&gt;
+
+&lt;p&gt;Docker is in the process of changing nearly everything about how we deploy web applications. Late in 2014 I put out a fairly weighty blog post about development environments with Docker along with a signup form to see who&amp;#39;d be interested in a book about deploying Rails with Docker. Interest has been impressive, the post is now one of my highest trafficked pages and signups to the book mailing list are around 7/ week.&lt;/p&gt;
+
+&lt;p&gt;Unfortunately at the moment the Docker ecosystem is moving to quickly to put out a stable book on how to deploy with it. As Docker begin to develop their own orchestration and development environment tool chain, it&amp;#39;s unclear whether the industry will standardise on that or if each platform ecosystem will develop it&amp;#39;s own favourite tools. So at the moment this book is on hold while things stabilise.&lt;/p&gt;
+
+&lt;p&gt;In the mean time I&amp;#39;ve written my own Docker Orchestration framework &lt;a href=&quot;https://github.com/talkingquickly/dacker&quot;&gt;Dacker&lt;/a&gt; which is entirely Ruby based and provides a simple way to orchestrate multiple containers across several hosts using a simple Fig like YAML syntax. Production usage is strongly discouraged...&lt;/p&gt;
+
+&lt;p&gt;I&amp;#39;ll also be continuing to blog about Docker in 2015.&lt;/p&gt;
+
+&lt;h3&gt;Au Revoir&lt;/h3&gt;
+
+&lt;p&gt;2013 marked the demise of InGuide - a digital guidebook platform for art galleries and museums. High support costs and falling funding for the arts meant it simply wasn&amp;#39;t financially viable. High points included trials with The National Trust and being used by the 3 Beards for one of their amazing art hack events.&lt;/p&gt;
+
+&lt;p&gt;2013 was also the end of Shop Of Me - a browser extension which alerted users when items of clothing they had used went on sale. The business model was re-selling the data collected to retailers to help with pricing and buying decisions. We eventually found that while data usage in the fashion industry is gradually on the up, it&amp;#39;s a slow process, and demand for data like ours wasn&amp;#39;t going to be sufficient to sustain the company. I&amp;#39;m not sure I quite go as far as Travis Lee Street&amp;#39;s Radio 4 quote that we were &amp;quot;the rockstars of the startup world&amp;quot; (because it isn&amp;#39;t true..) but we did get a visit to 10 Downing Street out of it!&lt;/p&gt;
+
+&lt;h2&gt;Speaking and Conferences&lt;/h2&gt;
+
+&lt;h3&gt;Speaking At Railsconf&lt;/h3&gt;
+
+&lt;p&gt;Buoyed by the interest in the book, I submitted a talk to RailsConf aimed at beginners, entitled &amp;quot;Deploying Rails is Easier Than it Looks&amp;quot;. Euphoria followed by total panic summarises my reaction to the acceptance email. You can watch the talk below:&lt;/p&gt;
+
+&lt;iframe width=&quot;560&quot; height=&quot;315&quot; src=&quot;//www.youtube.com/embed/hTofBnxyBUU&quot; frameborder=&quot;0&quot; allowfullscreen&gt;&lt;/iframe&gt;
+
+&lt;p&gt;In future I&amp;#39;d tone down the code walk through - it was too intimidating at the pace I did it - and probably do one or two less obsessive 4AM run throughs the night before. But in general it seemed well received and as my first talk at a major conference I&amp;#39;m pleased with it.&lt;/p&gt;
+
+&lt;p&gt;The conference itself was definitely worth attending just for the number of interesting people I met. I&amp;#39;ll definitely plan to go back to this years conference whether as a speaker or an attendee.&lt;/p&gt;
+
+&lt;h3&gt;Attending DockerCon&lt;/h3&gt;
+
+&lt;p&gt;The first ever DockerCon was definitely a special event. It&amp;#39;s amazing to see such a young company with such an engaged and diverse following. The badge of honor at the conference seemed to be hour far before 1.0 did you put Docker into production (0.8 for the record).&lt;/p&gt;
+
+&lt;p&gt;Seeing the likes of Google stand up to announce they&amp;#39;d be standardising on the Docker container format gave an idea of how the &amp;quot;getting people to agree standards&amp;quot; part of Docker is actually far more important than any code they&amp;#39;ve written.&lt;/p&gt;
+
+&lt;h3&gt;Attending TC Disrupt London&lt;/h3&gt;
+
+&lt;p&gt;Having built &lt;a href=&quot;http://www.sentimentile.com&quot;&gt;Sentimentile&lt;/a&gt; with the awesome &lt;a href=&quot;http://www.twitter.com/oldwhitewizard&quot;&gt;@OldWhiteWizard&lt;/a&gt; for the Disrupt Hackathon, we were lucky enough to win tickets to the main conference. I admit to being initially skeptical of Disrupt, TC seems to cover funding rather than tech so I was partly expecting two days of &amp;quot;who&amp;#39;s raised the biggest series A&amp;quot; posing.&lt;/p&gt;
+
+&lt;p&gt;As it turned out I couldn&amp;#39;t have been more wrong. The most impressive speaker by far was &lt;a href=&quot;http://en.wikipedia.org/wiki/Morten_Lund_%28investor%29&quot;&gt;Morten Lund&lt;/a&gt;, primarily due to what seemed like an almost pathological lack of interest in what anyone thought of his answers. It&amp;#39;s hard to pick a favourite but if pressed I&amp;#39;d probably go with &amp;quot;I&amp;#39;m not trying to be f**king friends with everybody, I just want to work on interesting things with people I like&amp;quot;.&lt;/p&gt;
+
+&lt;h2&gt;Health&lt;/h2&gt;
+
+&lt;h3&gt;Energy Levels, Wellbeing and Diet&lt;/h3&gt;
+
+&lt;p&gt;About two years after first realising that what goes into my body might effect how well it worked - revolutionary huh - I&amp;#39;m starting to get a feel for &amp;quot;what works&amp;quot; for me.&lt;/p&gt;
+
+&lt;p&gt;In general some variation on low/ slow carb seems to give me the most consistent energy throughout the day. In particular cutting out white bread and anything with a lot of refined sugar in it.&lt;/p&gt;
+
+&lt;p&gt;I stuck to a strict &amp;quot;no bread, no pasta etc&amp;quot; regime for a month while in Crete and as well as generally having a more consistent level of energy, lost around 1St. It did however have the major downfall that it excluded two key food groups; Fajitas and Pizza. The Fajita problem has been solved with the aid of low carb tortillas from Amazon and the pizza one by limiting it to occasions when said Pizza is free.&lt;/p&gt;
+
+&lt;p&gt;I become more convinced every year that basic meditation and mindfulness techniques should be taught along side basic numeracy and literacy. Having had a long and meandering relationship with stress and in particular irrational anxiety, meditation, specifically breath based meditations and exercises remain one of my most effective tools for keep my head straight. I can&amp;#39;t recommend the &lt;a href=&quot;https://www.headspace.com/&quot;&gt;Headspace&lt;/a&gt; app enough to anyone thinking of giving it a go.&lt;/p&gt;
+
+&lt;h3&gt;Exercise and Tracking&lt;/h3&gt;
+
+&lt;p&gt;Total distance on RunKeeper was 316km of which 240km was running, 71km cycling and 3.3km skiing. Total duration for all Cardio was 28 hours and 51 minutes which seems surpringly low. For about 2/3rds of the year I had a fairly good running schedule, sticking to at least once a week and usually more. That&amp;#39;s slipped completely at the start of 2015, in true British fashion, I blame the weather.&lt;/p&gt;
+
+&lt;p&gt;RunKeeper has proven to be a great motivator. In particular the paid version (clever) allowing me to see how each run compares to others of mine over a similar distance, e.g. &amp;quot;your 4th fastest 4 - 6km) and so-on.&lt;/p&gt;
+
+&lt;p&gt;The Withings Smart Body Analyser (read posh scales attached to wifi) turned out to be a great purchase. It&amp;#39;s emphasised just how low friction something needs to be for me to stick to regularly tracking it. This is in stark contrast to the Withings blood pressure monitor which I&amp;#39;ve ended up returning due to persistent unreliability.&lt;/p&gt;
+
+&lt;p&gt;While I haven&amp;#39;t stuck to it as regularly, sleep tracking with Sleep as Android has been useful. In particular it&amp;#39;s emphasised the difference to duration of deep sleep activities before sleeping make. Specifically that watching TV immediately before hand or drinking alcohol in the few hours before hand dramatically reduce the amount of deep sleep and so how well rested I feel the following day.&lt;/p&gt;
+
+&lt;p&gt;Other things I&amp;#39;ve experimented with tracking and given up on (and why):&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Mood (data not actionable)&lt;/li&gt;
+&lt;li&gt;Everything Eaten (too much effort to track)&lt;/li&gt;
+&lt;li&gt;Balance of activities E.g. work v social v exercise. (too much effort to track)&lt;/li&gt;
+&lt;li&gt;Calories Consumed (too much effort, data not actionable)&lt;/li&gt;
+&lt;li&gt;Steps (data not actionable)&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h2&gt;Travel&lt;/h2&gt;
+
+&lt;p&gt;2014 (and the end of 2013) are my best yet for travel by a long way. But since a picture is worth a thousand words, here are what may seem like several thousand pictures.&lt;/p&gt;
+
+&lt;h3&gt;Venice (2013)&lt;/h3&gt;
+
+&lt;p&gt;Look for the incredibly talented charcoal only artists with a studio under a bridge somewhere. He creates the most amazing pieces using only the edge of the stick.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/images/2014-in-review/venice3.jpg&quot; alt=&quot;Venice&quot;&gt;&lt;/p&gt;
+
+&lt;h3&gt;Malta (2013)&lt;/h3&gt;
+
+&lt;p&gt;They have English power outlets, what more can you ask for?&lt;/p&gt;
+
+&lt;h3&gt;Brussels (2013)&lt;/h3&gt;
+
+&lt;p&gt;When you get there, don&amp;#39;t despair, Ghent is only an hour away. And the Trams are good.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/images/2014-in-review/brussels2.jpg&quot; alt=&quot;Brussels&quot;&gt;&lt;/p&gt;
+
+&lt;h3&gt;Moving to Paris (2013/ 2014)&lt;/h3&gt;
+
+&lt;p&gt;Absolutely my favourite city in the world. Dedicated post coming soon. Nothing quite beats Canal St Matin on a summers evening or the Mutinerie co-working space at pretty much any time.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/images/2014-in-review/paris1.jpg&quot; alt=&quot;Paris&quot;&gt;&lt;/p&gt;
+
+&lt;h3&gt;Claviere (Skiing, 2014)&lt;/h3&gt;
+
+&lt;p&gt;Up to date lifts but retains the &amp;quot;little resort&amp;quot; feel. And our room key turned out to be a master key, the owner responded with surprise when I mentioned it, &amp;quot;so you&amp;#39;d prefer one just for your room&amp;quot;?&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/images/2014-in-review/claviere1.jpg&quot; alt=&quot;Claviere&quot;&gt;&lt;/p&gt;
+
+&lt;h3&gt;Milan (2014)&lt;/h3&gt;
+
+&lt;p&gt;A Beautiful city but everything is overshadowed by seeing Ludovicio Einaudi live. Just incredible.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/images/2014-in-review/milan2.jpg&quot; alt=&quot;Milan&quot;&gt;&lt;/p&gt;
+
+&lt;h3&gt;Crete (2014)&lt;/h3&gt;
+
+&lt;p&gt;The best place for stag do spotting outside of Prague (and it&amp;#39;s kind of beautiful).&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/images/2014-in-review/crete2.jpg&quot; alt=&quot;Crete&quot;&gt;&lt;/p&gt;
+
+&lt;h3&gt;Athens (2014)&lt;/h3&gt;
+
+&lt;p&gt;Athens Backpackers Hostel. Seriously. Go. Now.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/images/2014-in-review/athens6.jpg&quot; alt=&quot;Athens&quot;&gt;&lt;/p&gt;
+
+&lt;h3&gt;Chicago (2014)&lt;/h3&gt;
+
+&lt;p&gt;I wasn&amp;#39;t sure what the whole &amp;quot;windy city&amp;quot; thing was about. Now I get it.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/images/2014-in-review/chicago1.jpg&quot; alt=&quot;Chicago&quot;&gt;&lt;/p&gt;
+
+&lt;h3&gt;San Francisco (2014)&lt;/h3&gt;
+
+&lt;p&gt;On day two I wandered out into a mile long hippy fest complete with bubble blowing and hemp robes. Amazing city.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/images/2014-in-review/sf1.jpg&quot; alt=&quot;San Francisco&quot;&gt;&lt;/p&gt;
+
+&lt;h3&gt;Dallas (2014)&lt;/h3&gt;
+
+&lt;p&gt;Some beautiful lighting at night and the Texas state fair was beyond an experience.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/images/2014-in-review/dallas3.jpg&quot; alt=&quot;Dallas&quot;&gt;&lt;/p&gt;
+
+&lt;h3&gt;Austin (2014)&lt;/h3&gt;
+
+&lt;p&gt;Seems to have nothing beyond geography in common with what I&amp;#39;ve seen of the rest of Texas. Beautiful city seemingly built entirely around enjoying the outdoors.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/images/2014-in-review/austin3.jpg&quot; alt=&quot;Austin&quot;&gt;&lt;/p&gt;
+
+&lt;h3&gt;Boston (2014)&lt;/h3&gt;
+
+&lt;p&gt;One of my favourite cities to date, small enough that you can walk everywhere but big enough you can find everything you want.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/images/2014-in-review/boston1.jpg&quot; alt=&quot;Boston&quot;&gt;&lt;/p&gt;
+
+&lt;h3&gt;Maine (2014)&lt;/h3&gt;
+
+&lt;p&gt;The highlands of Scotland but with much, much better weather. It also took me a mere two hours to start the below pictured fire sans paper.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/images/2014-in-review/maine1.jpg&quot; alt=&quot;Maine&quot;&gt;&lt;/p&gt;
+
+&lt;h3&gt;New York (2014)&lt;/h3&gt;
+
+&lt;p&gt;I still can&amp;#39;t work out why but completely in love with this city, definitely need to live there at some point. And it&amp;#39;s not just because I had the best Chinese food I&amp;#39;ve ever encountered for $4.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/images/2014-in-review/ny1.jpg&quot; alt=&quot;NY&quot;&gt;&lt;/p&gt;
+
+&lt;h3&gt;Normandy (2014)&lt;/h3&gt;
+
+&lt;p&gt;There&amp;#39;s something bizarre but wonderful about the picturesque, quaint towns around the coast, directly next to the graveyards from the second world war.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/images/2014-in-review/normandy4.jpg&quot; alt=&quot;Normandy&quot;&gt;&lt;/p&gt;
+
+&lt;h2&gt;Goals For 2015&lt;/h2&gt;
+
+&lt;p&gt;If anything 2015 will have less goals than 2014. Despite it having been a very successful year, I started off trying to do so many things that it was tough not to focus on all the things I&amp;#39;d set out to do which I didn&amp;#39;t. So for 2015 all I&amp;#39;ve got is:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Meditate More&lt;/li&gt;
+&lt;li&gt;Finish Reliably Deploying Rails Applications&lt;/li&gt;
+&lt;li&gt;Spend more time with people&lt;/li&gt;
+&lt;li&gt;Try and get 7 - 8 hours sleep per night&lt;/li&gt;
+&lt;/ul&gt;
+</content>
+<summary>Having reached 2015 I&amp;#39;m forced to acknowledge that 2013 In Review is probably not going to happen. I might even remove it from my ToDo list where it&amp;#39;s now the oldest item after returning the copy of &amp;quot;Chaos&amp;quot; I borrowed from a public library in my first year of university, six years of fines are going to hurt. In the spirit of it probably isn&amp;#39;t a big deal I&amp;#39;ll dive straight into 2014 but with a scattering of confusing references to 2013 for context.</summary>
+</entry>
+</feed>
