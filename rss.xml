@@ -3,13 +3,77 @@
 <generator uri="http://jekyllrb.com" version="3.7.2">Jekyll</generator>
 <link href="https://www.talkingquickly.co.uk/rss.xml" rel="self" type="application/atom+xml" />
 <link href="https://www.talkingquickly.co.uk/" rel="alternate" type="text/html" />
-<updated>2021-01-04T02:28:32+00:00</updated>
+<updated>2021-01-04T02:29:46+00:00</updated>
 <id>https://www.talkingquickly.co.uk/</id>
 <title>talkingquickly</title>
 <subtitle>kubernetes, rails, stress free deployment and small steps taken quickly</subtitle>
 <author>
 <name>Ben Dixon</name>
 </author>
+<entry>
+<title>tmux, docker and SSH agent forwarding when developing remotely with VSCode</title>
+<link href="https://www.talkingquickly.co.uk/2021/01/tmux-ssh-agent-forwarding-vs-code/" rel="alternate" type="text/html" title="tmux, docker and SSH agent forwarding when developing remotely with VSCode" />
+<published>2021-01-04T00:00:00+00:00</published>
+<updated>2021-01-04T00:00:00+00:00</updated>
+<id>https://www.talkingquickly.co.uk/2021/01/tmux-ssh-agent-forwarding-vs-code</id>
+<content type="html" xml:base="https://www.talkingquickly.co.uk/2021/01/tmux-ssh-agent-forwarding-vs-code/">&lt;p&gt;SSH agent forwarding is kind of like magic. Say you&amp;#39;re using VSCode remote development to develop on a remote VM and you want to pull from a private repository. By default you might either generate a new keypair on the remote machine and add them to Github. Or you might copy your existing private key to the remote development machine. The former is fiddly and the latter raises some security concerns. With SSH Agent Forwarding you can allow the remote machine to authenticate requests using the keys on your local machine, without the keys ever leaving your local machine.&lt;/p&gt;
+
+&lt;p&gt;One hiccup with this is that if you&amp;#39;re a tmux user, you&amp;#39;ll find that this works initially but then stops working in subsequent sessions. This post offers a simple solution to this.&lt;/p&gt;
+
+&lt;!--more--&gt;
+
+&lt;h2&gt;tldr;&lt;/h2&gt;
+
+&lt;p&gt;To enable SSH forwarding for a particular remote host, add the following to the &lt;strong&gt;local&lt;/strong&gt; machines &lt;code&gt;~/ssh/config&lt;/code&gt;:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;Host A_FRIENDLY_NAME_FOR_THE_HOST
+  ForwardAgent yes
+  HostName ADDRESS_OR_IP_ADDRESS
+  User SSH_USERNAME
+  Port THE_SSH_PORT
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;You can then connect to this host locally with &lt;code&gt;ssh A_FRIENDLY_NAME_FOR_THE_HOST&lt;/code&gt; and it will show up as &lt;code&gt;A_FRIENDLY_NAME_FOR_THE_HOST&lt;/code&gt; in the VSCode remote explorer. SSH forwarding should &amp;quot;just work&amp;quot;.&lt;/p&gt;
+
+&lt;p&gt;To make SSH Forwarding play nicely with tmux, add the following to the &lt;strong&gt;remote&lt;/strong&gt; machines &lt;code&gt;${shell}rc&lt;/code&gt;, I use &lt;code&gt;zshc&lt;/code&gt; so for me that&amp;#39;s &lt;code&gt;.zshrc&lt;/code&gt;:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span&gt;&lt;/span&gt;&lt;span class=&quot;c1&quot;&gt;# Make tmux play nicely with SSH Agent forwarding&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt; -z &lt;span class=&quot;si&quot;&gt;${&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;TMUX&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;+x&lt;/span&gt;&lt;span class=&quot;si&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;then&lt;/span&gt;
+  &lt;span class=&quot;c1&quot;&gt;# If this is not a tmux session then symlink $SSH_AUTH_SOCK&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt; ! -S ~/.ssh/ssh_auth_sock &lt;span class=&quot;o&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;amp;&amp;amp;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt; -S &lt;span class=&quot;s2&quot;&gt;&amp;quot;&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;$SSH_AUTH_SOCK&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&amp;quot;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;then&lt;/span&gt;
+    ln -sf &lt;span class=&quot;nv&quot;&gt;$SSH_AUTH_SOCK&lt;/span&gt; ~/.ssh/ssh_auth_sock
+  &lt;span class=&quot;k&quot;&gt;fi&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;else&lt;/span&gt;
+  &lt;span class=&quot;c1&quot;&gt;# If this is a tmux session then use the symlinked SSH_AUTH_SOCK&lt;/span&gt;
+  &lt;span class=&quot;nb&quot;&gt;export&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;SSH_AUTH_SOCK&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;~/.ssh/ssh_auth_sock
+&lt;span class=&quot;k&quot;&gt;fi&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;If you&amp;#39;re using any version of my &lt;a href=&quot;https://github.com/TalkingQuickly/debian_dev_env&quot;&gt;Debian development environment&lt;/a&gt; this is done automatically, specifically in &lt;a href=&quot;https://github.com/TalkingQuickly/debian_dev_env/blob/master/dotfiles/.zshrc.personal.after&quot;&gt;this file&lt;/a&gt;.&lt;/p&gt;
+
+&lt;h2&gt;So what&amp;#39;s going on&lt;/h2&gt;
+
+&lt;p&gt;When you connect to a remote machine with SSH Agent forwarding enabled, ssh-agent creates a temporary socket which other applications can then use, the location of which is stored in &lt;code&gt;SSH_AUTH_SOCK&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;When you first create a new tmux session, this environment variable is copied over to the tmux session. However when you disconnect, the temporary socket is then invalidated. When you next reconnect to the remote machine, a new value for &lt;code&gt;SSH_AUTH_SOCK&lt;/code&gt; is created on the host, but when you reconnect to the tmux session, the old value is still there and so SSH agent forwarding won&amp;#39;t work inside the pre-existing session.&lt;/p&gt;
+
+&lt;p&gt;The solution to this (not mine originally, see &amp;quot;thanks to&amp;quot; below) is to add another level of indirection. We update the remote machines shell rc file so that when we connect, it creates a symlink from the temporary socket to a known permanent location; &lt;code&gt;~/.ssh/ssh_auth_sock&lt;/code&gt;. We then detect if we&amp;#39;re in a tmux session and if we are, replace &lt;code&gt;SSH_AUTH_SOCK&lt;/code&gt; with this unchanging, permanent location.&lt;/p&gt;
+
+&lt;h2&gt;Use within Docker&lt;/h2&gt;
+
+&lt;p&gt;Since &lt;code&gt;SSH_AUTH_SOCK&lt;/code&gt; is a unix socket is essentially just like any other file and so can be mounted into docker containers and access from these. This is useful if you have CLI type docker containers. The below shows a very simple &lt;code&gt;docker-compose.yml&lt;/code&gt; which assuming the above configuration, gives a bash shell with access to the docker hosts ssh agent (which can in turn be forwarded from another host).&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-yaml&quot; data-lang=&quot;yaml&quot;&gt;&lt;span&gt;&lt;/span&gt;&lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;version&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;3&amp;quot;&lt;/span&gt;
+&lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;services&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt;
+  &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;shell&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt;
+    &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;image&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;ubuntu&lt;/span&gt;
+    &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;command&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;bash&lt;/span&gt;
+    &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;volumes&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt;
+      &lt;span class=&quot;p p-Indicator&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;${SSH_AUTH_SOCK}:/home/deploy/ssh_auth_sock&amp;quot;&lt;/span&gt;
+    &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;environment&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt;
+      &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;SSH_AUTH_SOCK&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;/home/deploy/ssh_auth_sock&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;h2&gt;Thanks to&lt;/h2&gt;
+
+&lt;p&gt;This is based heavily on the approach outlined here; https://werat.github.io/2017/02/04/tmux-ssh-agent-forwarding which didn&amp;#39;t quite work for me; specifically I couldn&amp;#39;t make setting &lt;code&gt;SSH_AUTH_SOCK&lt;/code&gt; in &lt;code&gt;.tmux.conf&lt;/code&gt; work.&lt;/p&gt;
+</content>
+<summary>SSH agent forwarding is kind of like magic. Say you&amp;#39;re using VSCode remote development to develop on a remote VM and you want to pull from a private repository. By default you might either generate a new keypair on the remote machine and add them to Github. Or you might copy your existing private key to the remote development machine. The former is fiddly and the latter raises some security concerns. With SSH Agent Forwarding you can allow the remote machine to authenticate requests using the keys on your local machine, without the keys ever leaving your local machine.One hiccup with this is that if you&amp;#39;re a tmux user, you&amp;#39;ll find that this works initially but then stops working in subsequent sessions. This post offers a simple solution to this.</summary>
+</entry>
 <entry>
 <title>Automating MacOS Development setup with Ansible</title>
 <link href="https://www.talkingquickly.co.uk/2021/01/macos-setup-with-ansible/" rel="alternate" type="text/html" title="Automating MacOS Development setup with Ansible" />
@@ -1099,222 +1163,5 @@ here
 &lt;/ol&gt;
 </content>
 <summary>This is, in no particular order, what I&amp;#39;d tell myself about startups if I could go back in time to when I first got involved. Which is probably the same as what I&amp;#39;ve learned. This is most definitely not advice, the &amp;quot;you&amp;quot; here is directed at me. So is &amp;quot;I&amp;quot;. Grammar is hard.</summary>
-</entry>
-<entry>
-<title>2014 In Review</title>
-<link href="https://www.talkingquickly.co.uk/2015/02/2014-in-review/" rel="alternate" type="text/html" title="2014 In Review" />
-<published>2015-02-12T08:00:00+00:00</published>
-<updated>2015-02-12T08:00:00+00:00</updated>
-<id>https://www.talkingquickly.co.uk/2015/02/2014-in-review</id>
-<content type="html" xml:base="https://www.talkingquickly.co.uk/2015/02/2014-in-review/">&lt;p&gt;Having reached 2015 I&amp;#39;m forced to acknowledge that 2013 In Review is probably not going to happen. I might even remove it from my ToDo list where it&amp;#39;s now the oldest item after returning the copy of &amp;quot;Chaos&amp;quot; I borrowed from a public library in my first year of university, six years of fines are going to hurt. In the spirit of &lt;a href=&quot;&quot;&gt;it probably isn&amp;#39;t a big deal&lt;/a&gt; I&amp;#39;ll dive straight into 2014 but with a scattering of confusing references to 2013 for context.&lt;/p&gt;
-
-&lt;!--more--&gt;
-
-&lt;h2&gt;Products&lt;/h2&gt;
-
-&lt;p&gt;One of my long term goals is to shift my income away from consulting and towards products. 2014 was the best year yet for this and hopefully 2015 will see this trend continue.&lt;/p&gt;
-
-&lt;h3&gt;Make It With Code&lt;/h3&gt;
-
-&lt;p&gt;In January 2014, &lt;a href=&quot;http://www.twitter.com/hrowalters&quot;&gt;Huw&lt;/a&gt;, &lt;a href=&quot;http://www.twitter.com/bec_pr&quot;&gt;Rebecca&lt;/a&gt; and I sat in a freezing cafe in Paris and talked about learning to code. In particular how it was broken. Our expertise was formidable, I&amp;#39;d learned to code, Rebecca was learning and Huw was used to trying to block out me talking about code. We were nearly experts already.&lt;/p&gt;
-
-&lt;p&gt;Our premise was simple, good developers learned by hacking on things, not by trawling through reams of dry theory. So why was no-one teaching this way. We put pen to paper and the result was &lt;a href=&quot;/2014/01/teaching-people-to-code/&quot;&gt;this&lt;/a&gt; blog post. Our offer to write a course which taught this way was taken up by a surprisingly large number of people on Reddit and within a day we had over 60 people willing to pay for our experiment.&lt;/p&gt;
-
-&lt;p&gt;What followed was ten weeks of madness which when squinted at carefully, reveals what turned out to be a surprisingly effective method. The first of ten lessons was finished hours before the first group started. Having been written by me and tested by Huw and Rebecca, both for content and the ratio of sarcastic jokes to informational (1:10 turns out to be the perfect balance) the lesson went out to the first group. We&amp;#39;d then begin the whole process again for the next lesson alongside improving the first one based on feedback before sending it out to the next weeks group.&lt;/p&gt;
-
-&lt;p&gt;After ten weeks, ten lessons and countless revisions, we were exhausted but it seemed to have worked! Feedback from students was great and even more excitingly, they were sending us real things they&amp;#39;d been able to make using what they&amp;#39;d learned.&lt;/p&gt;
-
-&lt;p&gt;Fast forward to the end of 2014 and we&amp;#39;re seeing good organic growth of our general &amp;quot;introduction to code&amp;quot; course (&lt;a href=&quot;http://www.makeitwithcode.com&quot;&gt;http://www.makeitwithcode.com&lt;/a&gt;) and just launched our first industry specific course &lt;a href=&quot;https://www.makeitwithcode.com/community-professionals&quot;&gt;coding for community professionals&lt;/a&gt; in partnership with CMX Media in San Francisco. Our tech&amp;#39;s a bit more advanced to with a completely custom platform for delivering lesson content as well as a Docker based Cloud IDE for every student.&lt;/p&gt;
-
-&lt;p&gt;2015 will see us launch several more industry specific courses as well as experiment with in person teaching and multiple delivery platforms.&lt;/p&gt;
-
-&lt;h3&gt;Reliably Deploying Rails Applications&lt;/h3&gt;
-
-&lt;p&gt;Somewhere towards the end of 2013, patio11 on HN mentioned that someone should write a book about how to deploy Rails Applications without tearing your hair out. I commented that I&amp;#39;d been collating notes on that topic for a while and was thinking of releasing it as book sometime. I woke up to several emails from people saying they&amp;#39;d buy such a book and asking for copies of it. So somewhat impulsively I decided to write it.&lt;/p&gt;
-
-&lt;p&gt;Optimistically thinking it would take around three months to write and with a goal of selling ten copies, I released the first chapter on the amazing &lt;a href=&quot;http://leanpub.com/deploying_rails_applications&quot;&gt;Leanpub&lt;/a&gt;, set a fairly low price and starting writing. 14 Months, two total re-writes and it&amp;#39;s now about 90% finished. In this period it&amp;#39;s sold around 850 copies and made a little over $15,000. The amazing Obie Fernandez, author of The Rails Way has kindly agreed to write a foreword and the &amp;#39;final&amp;#39; version should be out by April this year.&lt;/p&gt;
-
-&lt;h3&gt;Deploying Rails with Docker&lt;/h3&gt;
-
-&lt;p&gt;Docker is in the process of changing nearly everything about how we deploy web applications. Late in 2014 I put out a fairly weighty blog post about development environments with Docker along with a signup form to see who&amp;#39;d be interested in a book about deploying Rails with Docker. Interest has been impressive, the post is now one of my highest trafficked pages and signups to the book mailing list are around 7/ week.&lt;/p&gt;
-
-&lt;p&gt;Unfortunately at the moment the Docker ecosystem is moving to quickly to put out a stable book on how to deploy with it. As Docker begin to develop their own orchestration and development environment tool chain, it&amp;#39;s unclear whether the industry will standardise on that or if each platform ecosystem will develop it&amp;#39;s own favourite tools. So at the moment this book is on hold while things stabilise.&lt;/p&gt;
-
-&lt;p&gt;In the mean time I&amp;#39;ve written my own Docker Orchestration framework &lt;a href=&quot;https://github.com/talkingquickly/dacker&quot;&gt;Dacker&lt;/a&gt; which is entirely Ruby based and provides a simple way to orchestrate multiple containers across several hosts using a simple Fig like YAML syntax. Production usage is strongly discouraged...&lt;/p&gt;
-
-&lt;p&gt;I&amp;#39;ll also be continuing to blog about Docker in 2015.&lt;/p&gt;
-
-&lt;h3&gt;Au Revoir&lt;/h3&gt;
-
-&lt;p&gt;2013 marked the demise of InGuide - a digital guidebook platform for art galleries and museums. High support costs and falling funding for the arts meant it simply wasn&amp;#39;t financially viable. High points included trials with The National Trust and being used by the 3 Beards for one of their amazing art hack events.&lt;/p&gt;
-
-&lt;p&gt;2013 was also the end of Shop Of Me - a browser extension which alerted users when items of clothing they had used went on sale. The business model was re-selling the data collected to retailers to help with pricing and buying decisions. We eventually found that while data usage in the fashion industry is gradually on the up, it&amp;#39;s a slow process, and demand for data like ours wasn&amp;#39;t going to be sufficient to sustain the company. I&amp;#39;m not sure I quite go as far as Travis Lee Street&amp;#39;s Radio 4 quote that we were &amp;quot;the rockstars of the startup world&amp;quot; (because it isn&amp;#39;t true..) but we did get a visit to 10 Downing Street out of it!&lt;/p&gt;
-
-&lt;h2&gt;Speaking and Conferences&lt;/h2&gt;
-
-&lt;h3&gt;Speaking At Railsconf&lt;/h3&gt;
-
-&lt;p&gt;Buoyed by the interest in the book, I submitted a talk to RailsConf aimed at beginners, entitled &amp;quot;Deploying Rails is Easier Than it Looks&amp;quot;. Euphoria followed by total panic summarises my reaction to the acceptance email. You can watch the talk below:&lt;/p&gt;
-
-&lt;iframe width=&quot;560&quot; height=&quot;315&quot; src=&quot;//www.youtube.com/embed/hTofBnxyBUU&quot; frameborder=&quot;0&quot; allowfullscreen&gt;&lt;/iframe&gt;
-
-&lt;p&gt;In future I&amp;#39;d tone down the code walk through - it was too intimidating at the pace I did it - and probably do one or two less obsessive 4AM run throughs the night before. But in general it seemed well received and as my first talk at a major conference I&amp;#39;m pleased with it.&lt;/p&gt;
-
-&lt;p&gt;The conference itself was definitely worth attending just for the number of interesting people I met. I&amp;#39;ll definitely plan to go back to this years conference whether as a speaker or an attendee.&lt;/p&gt;
-
-&lt;h3&gt;Attending DockerCon&lt;/h3&gt;
-
-&lt;p&gt;The first ever DockerCon was definitely a special event. It&amp;#39;s amazing to see such a young company with such an engaged and diverse following. The badge of honor at the conference seemed to be hour far before 1.0 did you put Docker into production (0.8 for the record).&lt;/p&gt;
-
-&lt;p&gt;Seeing the likes of Google stand up to announce they&amp;#39;d be standardising on the Docker container format gave an idea of how the &amp;quot;getting people to agree standards&amp;quot; part of Docker is actually far more important than any code they&amp;#39;ve written.&lt;/p&gt;
-
-&lt;h3&gt;Attending TC Disrupt London&lt;/h3&gt;
-
-&lt;p&gt;Having built &lt;a href=&quot;http://www.sentimentile.com&quot;&gt;Sentimentile&lt;/a&gt; with the awesome &lt;a href=&quot;http://www.twitter.com/oldwhitewizard&quot;&gt;@OldWhiteWizard&lt;/a&gt; for the Disrupt Hackathon, we were lucky enough to win tickets to the main conference. I admit to being initially skeptical of Disrupt, TC seems to cover funding rather than tech so I was partly expecting two days of &amp;quot;who&amp;#39;s raised the biggest series A&amp;quot; posing.&lt;/p&gt;
-
-&lt;p&gt;As it turned out I couldn&amp;#39;t have been more wrong. The most impressive speaker by far was &lt;a href=&quot;http://en.wikipedia.org/wiki/Morten_Lund_%28investor%29&quot;&gt;Morten Lund&lt;/a&gt;, primarily due to what seemed like an almost pathological lack of interest in what anyone thought of his answers. It&amp;#39;s hard to pick a favourite but if pressed I&amp;#39;d probably go with &amp;quot;I&amp;#39;m not trying to be f**king friends with everybody, I just want to work on interesting things with people I like&amp;quot;.&lt;/p&gt;
-
-&lt;h2&gt;Health&lt;/h2&gt;
-
-&lt;h3&gt;Energy Levels, Wellbeing and Diet&lt;/h3&gt;
-
-&lt;p&gt;About two years after first realising that what goes into my body might effect how well it worked - revolutionary huh - I&amp;#39;m starting to get a feel for &amp;quot;what works&amp;quot; for me.&lt;/p&gt;
-
-&lt;p&gt;In general some variation on low/ slow carb seems to give me the most consistent energy throughout the day. In particular cutting out white bread and anything with a lot of refined sugar in it.&lt;/p&gt;
-
-&lt;p&gt;I stuck to a strict &amp;quot;no bread, no pasta etc&amp;quot; regime for a month while in Crete and as well as generally having a more consistent level of energy, lost around 1St. It did however have the major downfall that it excluded two key food groups; Fajitas and Pizza. The Fajita problem has been solved with the aid of low carb tortillas from Amazon and the pizza one by limiting it to occasions when said Pizza is free.&lt;/p&gt;
-
-&lt;p&gt;I become more convinced every year that basic meditation and mindfulness techniques should be taught along side basic numeracy and literacy. Having had a long and meandering relationship with stress and in particular irrational anxiety, meditation, specifically breath based meditations and exercises remain one of my most effective tools for keep my head straight. I can&amp;#39;t recommend the &lt;a href=&quot;https://www.headspace.com/&quot;&gt;Headspace&lt;/a&gt; app enough to anyone thinking of giving it a go.&lt;/p&gt;
-
-&lt;h3&gt;Exercise and Tracking&lt;/h3&gt;
-
-&lt;p&gt;Total distance on RunKeeper was 316km of which 240km was running, 71km cycling and 3.3km skiing. Total duration for all Cardio was 28 hours and 51 minutes which seems surpringly low. For about 2/3rds of the year I had a fairly good running schedule, sticking to at least once a week and usually more. That&amp;#39;s slipped completely at the start of 2015, in true British fashion, I blame the weather.&lt;/p&gt;
-
-&lt;p&gt;RunKeeper has proven to be a great motivator. In particular the paid version (clever) allowing me to see how each run compares to others of mine over a similar distance, e.g. &amp;quot;your 4th fastest 4 - 6km) and so-on.&lt;/p&gt;
-
-&lt;p&gt;The Withings Smart Body Analyser (read posh scales attached to wifi) turned out to be a great purchase. It&amp;#39;s emphasised just how low friction something needs to be for me to stick to regularly tracking it. This is in stark contrast to the Withings blood pressure monitor which I&amp;#39;ve ended up returning due to persistent unreliability.&lt;/p&gt;
-
-&lt;p&gt;While I haven&amp;#39;t stuck to it as regularly, sleep tracking with Sleep as Android has been useful. In particular it&amp;#39;s emphasised the difference to duration of deep sleep activities before sleeping make. Specifically that watching TV immediately before hand or drinking alcohol in the few hours before hand dramatically reduce the amount of deep sleep and so how well rested I feel the following day.&lt;/p&gt;
-
-&lt;p&gt;Other things I&amp;#39;ve experimented with tracking and given up on (and why):&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;Mood (data not actionable)&lt;/li&gt;
-&lt;li&gt;Everything Eaten (too much effort to track)&lt;/li&gt;
-&lt;li&gt;Balance of activities E.g. work v social v exercise. (too much effort to track)&lt;/li&gt;
-&lt;li&gt;Calories Consumed (too much effort, data not actionable)&lt;/li&gt;
-&lt;li&gt;Steps (data not actionable)&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;h2&gt;Travel&lt;/h2&gt;
-
-&lt;p&gt;2014 (and the end of 2013) are my best yet for travel by a long way. But since a picture is worth a thousand words, here are what may seem like several thousand pictures.&lt;/p&gt;
-
-&lt;h3&gt;Venice (2013)&lt;/h3&gt;
-
-&lt;p&gt;Look for the incredibly talented charcoal only artists with a studio under a bridge somewhere. He creates the most amazing pieces using only the edge of the stick.&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&quot;/assets/images/2014-in-review/venice3.jpg&quot; alt=&quot;Venice&quot;&gt;&lt;/p&gt;
-
-&lt;h3&gt;Malta (2013)&lt;/h3&gt;
-
-&lt;p&gt;They have English power outlets, what more can you ask for?&lt;/p&gt;
-
-&lt;h3&gt;Brussels (2013)&lt;/h3&gt;
-
-&lt;p&gt;When you get there, don&amp;#39;t despair, Ghent is only an hour away. And the Trams are good.&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&quot;/assets/images/2014-in-review/brussels2.jpg&quot; alt=&quot;Brussels&quot;&gt;&lt;/p&gt;
-
-&lt;h3&gt;Moving to Paris (2013/ 2014)&lt;/h3&gt;
-
-&lt;p&gt;Absolutely my favourite city in the world. Dedicated post coming soon. Nothing quite beats Canal St Matin on a summers evening or the Mutinerie co-working space at pretty much any time.&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&quot;/assets/images/2014-in-review/paris1.jpg&quot; alt=&quot;Paris&quot;&gt;&lt;/p&gt;
-
-&lt;h3&gt;Claviere (Skiing, 2014)&lt;/h3&gt;
-
-&lt;p&gt;Up to date lifts but retains the &amp;quot;little resort&amp;quot; feel. And our room key turned out to be a master key, the owner responded with surprise when I mentioned it, &amp;quot;so you&amp;#39;d prefer one just for your room&amp;quot;?&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&quot;/assets/images/2014-in-review/claviere1.jpg&quot; alt=&quot;Claviere&quot;&gt;&lt;/p&gt;
-
-&lt;h3&gt;Milan (2014)&lt;/h3&gt;
-
-&lt;p&gt;A Beautiful city but everything is overshadowed by seeing Ludovicio Einaudi live. Just incredible.&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&quot;/assets/images/2014-in-review/milan2.jpg&quot; alt=&quot;Milan&quot;&gt;&lt;/p&gt;
-
-&lt;h3&gt;Crete (2014)&lt;/h3&gt;
-
-&lt;p&gt;The best place for stag do spotting outside of Prague (and it&amp;#39;s kind of beautiful).&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&quot;/assets/images/2014-in-review/crete2.jpg&quot; alt=&quot;Crete&quot;&gt;&lt;/p&gt;
-
-&lt;h3&gt;Athens (2014)&lt;/h3&gt;
-
-&lt;p&gt;Athens Backpackers Hostel. Seriously. Go. Now.&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&quot;/assets/images/2014-in-review/athens6.jpg&quot; alt=&quot;Athens&quot;&gt;&lt;/p&gt;
-
-&lt;h3&gt;Chicago (2014)&lt;/h3&gt;
-
-&lt;p&gt;I wasn&amp;#39;t sure what the whole &amp;quot;windy city&amp;quot; thing was about. Now I get it.&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&quot;/assets/images/2014-in-review/chicago1.jpg&quot; alt=&quot;Chicago&quot;&gt;&lt;/p&gt;
-
-&lt;h3&gt;San Francisco (2014)&lt;/h3&gt;
-
-&lt;p&gt;On day two I wandered out into a mile long hippy fest complete with bubble blowing and hemp robes. Amazing city.&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&quot;/assets/images/2014-in-review/sf1.jpg&quot; alt=&quot;San Francisco&quot;&gt;&lt;/p&gt;
-
-&lt;h3&gt;Dallas (2014)&lt;/h3&gt;
-
-&lt;p&gt;Some beautiful lighting at night and the Texas state fair was beyond an experience.&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&quot;/assets/images/2014-in-review/dallas3.jpg&quot; alt=&quot;Dallas&quot;&gt;&lt;/p&gt;
-
-&lt;h3&gt;Austin (2014)&lt;/h3&gt;
-
-&lt;p&gt;Seems to have nothing beyond geography in common with what I&amp;#39;ve seen of the rest of Texas. Beautiful city seemingly built entirely around enjoying the outdoors.&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&quot;/assets/images/2014-in-review/austin3.jpg&quot; alt=&quot;Austin&quot;&gt;&lt;/p&gt;
-
-&lt;h3&gt;Boston (2014)&lt;/h3&gt;
-
-&lt;p&gt;One of my favourite cities to date, small enough that you can walk everywhere but big enough you can find everything you want.&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&quot;/assets/images/2014-in-review/boston1.jpg&quot; alt=&quot;Boston&quot;&gt;&lt;/p&gt;
-
-&lt;h3&gt;Maine (2014)&lt;/h3&gt;
-
-&lt;p&gt;The highlands of Scotland but with much, much better weather. It also took me a mere two hours to start the below pictured fire sans paper.&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&quot;/assets/images/2014-in-review/maine1.jpg&quot; alt=&quot;Maine&quot;&gt;&lt;/p&gt;
-
-&lt;h3&gt;New York (2014)&lt;/h3&gt;
-
-&lt;p&gt;I still can&amp;#39;t work out why but completely in love with this city, definitely need to live there at some point. And it&amp;#39;s not just because I had the best Chinese food I&amp;#39;ve ever encountered for $4.&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&quot;/assets/images/2014-in-review/ny1.jpg&quot; alt=&quot;NY&quot;&gt;&lt;/p&gt;
-
-&lt;h3&gt;Normandy (2014)&lt;/h3&gt;
-
-&lt;p&gt;There&amp;#39;s something bizarre but wonderful about the picturesque, quaint towns around the coast, directly next to the graveyards from the second world war.&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&quot;/assets/images/2014-in-review/normandy4.jpg&quot; alt=&quot;Normandy&quot;&gt;&lt;/p&gt;
-
-&lt;h2&gt;Goals For 2015&lt;/h2&gt;
-
-&lt;p&gt;If anything 2015 will have less goals than 2014. Despite it having been a very successful year, I started off trying to do so many things that it was tough not to focus on all the things I&amp;#39;d set out to do which I didn&amp;#39;t. So for 2015 all I&amp;#39;ve got is:&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;Meditate More&lt;/li&gt;
-&lt;li&gt;Finish Reliably Deploying Rails Applications&lt;/li&gt;
-&lt;li&gt;Spend more time with people&lt;/li&gt;
-&lt;li&gt;Try and get 7 - 8 hours sleep per night&lt;/li&gt;
-&lt;/ul&gt;
-</content>
-<summary>Having reached 2015 I&amp;#39;m forced to acknowledge that 2013 In Review is probably not going to happen. I might even remove it from my ToDo list where it&amp;#39;s now the oldest item after returning the copy of &amp;quot;Chaos&amp;quot; I borrowed from a public library in my first year of university, six years of fines are going to hurt. In the spirit of it probably isn&amp;#39;t a big deal I&amp;#39;ll dive straight into 2014 but with a scattering of confusing references to 2013 for context.</summary>
 </entry>
 </feed>
