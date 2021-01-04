@@ -3,7 +3,7 @@
 <generator uri="http://jekyllrb.com" version="3.7.2">Jekyll</generator>
 <link href="https://www.talkingquickly.co.uk/rss.xml" rel="self" type="application/atom+xml" />
 <link href="https://www.talkingquickly.co.uk/" rel="alternate" type="text/html" />
-<updated>2021-01-04T02:37:05+00:00</updated>
+<updated>2021-01-04T02:43:43+00:00</updated>
 <id>https://www.talkingquickly.co.uk/</id>
 <title>talkingquickly</title>
 <subtitle>kubernetes, rails, stress free deployment and small steps taken quickly</subtitle>
@@ -33,7 +33,7 @@
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;You can then connect to this host locally with &lt;code&gt;ssh A_FRIENDLY_NAME_FOR_THE_HOST&lt;/code&gt; and it will show up as &lt;code&gt;A_FRIENDLY_NAME_FOR_THE_HOST&lt;/code&gt; in the VSCode remote explorer. SSH forwarding should &amp;quot;just work&amp;quot;.&lt;/p&gt;
 
-&lt;p&gt;To make SSH Forwarding play nicely with tmux, add the following to the &lt;strong&gt;remote&lt;/strong&gt; machines &lt;code&gt;${shell}rc&lt;/code&gt;, I use &lt;code&gt;zshc&lt;/code&gt; so for me that&amp;#39;s &lt;code&gt;.zshrc&lt;/code&gt;:&lt;/p&gt;
+&lt;p&gt;To make SSH Forwarding play nicely with tmux, add the following to the &lt;strong&gt;remote&lt;/strong&gt; machines &lt;code&gt;${shell}rc&lt;/code&gt;, I use &lt;code&gt;zsh&lt;/code&gt; so for me that&amp;#39;s &lt;code&gt;~/.zshrc&lt;/code&gt;:&lt;/p&gt;
 &lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span&gt;&lt;/span&gt;&lt;span class=&quot;c1&quot;&gt;# Make tmux play nicely with SSH Agent forwarding&lt;/span&gt;
 &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt; -z &lt;span class=&quot;si&quot;&gt;${&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;TMUX&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;+x&lt;/span&gt;&lt;span class=&quot;si&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;then&lt;/span&gt;
   &lt;span class=&quot;c1&quot;&gt;# If this is not a tmux session then symlink $SSH_AUTH_SOCK&lt;/span&gt;

@@ -62,7 +62,7 @@
 </code></pre></div>
 <p>You can then connect to this host locally with <code>ssh A_FRIENDLY_NAME_FOR_THE_HOST</code> and it will show up as <code>A_FRIENDLY_NAME_FOR_THE_HOST</code> in the VSCode remote explorer. SSH forwarding should &quot;just work&quot;.</p>
 
-<p>To make SSH Forwarding play nicely with tmux, add the following to the <strong>remote</strong> machines <code>${shell}rc</code>, I use <code>zshc</code> so for me that&#39;s <code>.zshrc</code>:</p>
+<p>To make SSH Forwarding play nicely with tmux, add the following to the <strong>remote</strong> machines <code>${shell}rc</code>, I use <code>zsh</code> so for me that&#39;s <code>~/.zshrc</code>:</p>
 <div class="highlight"><pre><code class="language-bash" data-lang="bash"><span></span><span class="c1"># Make tmux play nicely with SSH Agent forwarding</span>
 <span class="k">if</span> <span class="o">[</span> -z <span class="si">${</span><span class="nv">TMUX</span><span class="p">+x</span><span class="si">}</span> <span class="o">]</span><span class="p">;</span> <span class="k">then</span>
   <span class="c1"># If this is not a tmux session then symlink $SSH_AUTH_SOCK</span>
