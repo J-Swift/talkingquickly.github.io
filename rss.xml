@@ -3,7 +3,7 @@
 <generator uri="http://jekyllrb.com" version="3.7.2">Jekyll</generator>
 <link href="https://www.talkingquickly.co.uk/rss.xml" rel="self" type="application/atom+xml" />
 <link href="https://www.talkingquickly.co.uk/" rel="alternate" type="text/html" />
-<updated>2021-01-04T02:29:46+00:00</updated>
+<updated>2021-01-04T02:32:48+00:00</updated>
 <id>https://www.talkingquickly.co.uk/</id>
 <title>talkingquickly</title>
 <subtitle>kubernetes, rails, stress free deployment and small steps taken quickly</subtitle>
@@ -57,7 +57,7 @@
 
 &lt;h2&gt;Use within Docker&lt;/h2&gt;
 
-&lt;p&gt;Since &lt;code&gt;SSH_AUTH_SOCK&lt;/code&gt; is a unix socket is essentially just like any other file and so can be mounted into docker containers and access from these. This is useful if you have CLI type docker containers. The below shows a very simple &lt;code&gt;docker-compose.yml&lt;/code&gt; which assuming the above configuration, gives a bash shell with access to the docker hosts ssh agent (which can in turn be forwarded from another host).&lt;/p&gt;
+&lt;p&gt;Since &lt;code&gt;SSH_AUTH_SOCK&lt;/code&gt; is a unix socket it&amp;#39;s essentially just like any other file and so can be mounted into docker containers and accessed from these. This is useful if you have CLI type docker containers. The below shows a very simple &lt;code&gt;docker-compose.yml&lt;/code&gt; which assuming the above configuration, gives a bash shell with access to the docker hosts ssh agent (which can in turn be forwarded from another host).&lt;/p&gt;
 &lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-yaml&quot; data-lang=&quot;yaml&quot;&gt;&lt;span&gt;&lt;/span&gt;&lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;version&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;3&amp;quot;&lt;/span&gt;
 &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;services&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt;
   &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;shell&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt;
@@ -70,7 +70,7 @@
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;h2&gt;Thanks to&lt;/h2&gt;
 
-&lt;p&gt;This is based heavily on the approach outlined here; https://werat.github.io/2017/02/04/tmux-ssh-agent-forwarding which didn&amp;#39;t quite work for me; specifically I couldn&amp;#39;t make setting &lt;code&gt;SSH_AUTH_SOCK&lt;/code&gt; in &lt;code&gt;.tmux.conf&lt;/code&gt; work.&lt;/p&gt;
+&lt;p&gt;This is based heavily on the approach outlined &lt;a href=&quot;https://werat.github.io/2017/02/04/tmux-ssh-agent-forwarding&quot;&gt;here&lt;/a&gt; which didn&amp;#39;t quite work for me; specifically I couldn&amp;#39;t make setting &lt;code&gt;SSH_AUTH_SOCK&lt;/code&gt; in &lt;code&gt;.tmux.conf&lt;/code&gt; work.&lt;/p&gt;
 </content>
 <summary>SSH agent forwarding is kind of like magic. Say you&amp;#39;re using VSCode remote development to develop on a remote VM and you want to pull from a private repository. By default you might either generate a new keypair on the remote machine and add them to Github. Or you might copy your existing private key to the remote development machine. The former is fiddly and the latter raises some security concerns. With SSH Agent Forwarding you can allow the remote machine to authenticate requests using the keys on your local machine, without the keys ever leaving your local machine.One hiccup with this is that if you&amp;#39;re a tmux user, you&amp;#39;ll find that this works initially but then stops working in subsequent sessions. This post offers a simple solution to this.</summary>
 </entry>

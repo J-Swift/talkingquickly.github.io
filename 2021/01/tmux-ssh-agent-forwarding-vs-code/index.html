@@ -86,7 +86,7 @@
 
 <h2>Use within Docker</h2>
 
-<p>Since <code>SSH_AUTH_SOCK</code> is a unix socket is essentially just like any other file and so can be mounted into docker containers and access from these. This is useful if you have CLI type docker containers. The below shows a very simple <code>docker-compose.yml</code> which assuming the above configuration, gives a bash shell with access to the docker hosts ssh agent (which can in turn be forwarded from another host).</p>
+<p>Since <code>SSH_AUTH_SOCK</code> is a unix socket it&#39;s essentially just like any other file and so can be mounted into docker containers and accessed from these. This is useful if you have CLI type docker containers. The below shows a very simple <code>docker-compose.yml</code> which assuming the above configuration, gives a bash shell with access to the docker hosts ssh agent (which can in turn be forwarded from another host).</p>
 <div class="highlight"><pre><code class="language-yaml" data-lang="yaml"><span></span><span class="l l-Scalar l-Scalar-Plain">version</span><span class="p p-Indicator">:</span> <span class="s">&quot;3&quot;</span>
 <span class="l l-Scalar l-Scalar-Plain">services</span><span class="p p-Indicator">:</span>
   <span class="l l-Scalar l-Scalar-Plain">shell</span><span class="p p-Indicator">:</span>
@@ -99,7 +99,7 @@
 </code></pre></div>
 <h2>Thanks to</h2>
 
-<p>This is based heavily on the approach outlined here; https://werat.github.io/2017/02/04/tmux-ssh-agent-forwarding which didn&#39;t quite work for me; specifically I couldn&#39;t make setting <code>SSH_AUTH_SOCK</code> in <code>.tmux.conf</code> work.</p>
+<p>This is based heavily on the approach outlined <a href="https://werat.github.io/2017/02/04/tmux-ssh-agent-forwarding">here</a> which didn&#39;t quite work for me; specifically I couldn&#39;t make setting <code>SSH_AUTH_SOCK</code> in <code>.tmux.conf</code> work.</p>
 
         </section>
 
