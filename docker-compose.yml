@@ -13,7 +13,7 @@ services:
     command: bash
     volumes:
       - .:/home/deploy/app
-      - ssh_folder:/home_deploy/.ssh
+      - ssh_folder:/home/deploy/.ssh
       - "${SSH_AUTH_SOCK}:/home/deploy/ssh_auth_sock"
       - fast_deploy_cache:/home/deploy/release
     environment:
