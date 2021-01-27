@@ -3,7 +3,7 @@
 <generator uri="http://jekyllrb.com" version="3.7.2">Jekyll</generator>
 <link href="https://www.talkingquickly.co.uk/rss.xml" rel="self" type="application/atom+xml" />
 <link href="https://www.talkingquickly.co.uk/" rel="alternate" type="text/html" />
-<updated>2021-01-08T03:20:42+00:00</updated>
+<updated>2021-01-27T09:22:06+00:00</updated>
 <id>https://www.talkingquickly.co.uk/</id>
 <title>talkingquickly</title>
 <subtitle>kubernetes, rails, stress free deployment and small steps taken quickly</subtitle>
@@ -26,7 +26,7 @@
 
 &lt;h2&gt;Set up a Virtualbox VM&lt;/h2&gt;
 
-&lt;p&gt;If you&amp;#39;re using a cloud VM (e.g. GCP, AWS, Hetzner etc) then you can skip this section and go straight to &amp;quot;Cloud VM&amp;quot; below. &lt;/p&gt;
+&lt;p&gt;If you&amp;#39;re using a cloud VM (e.g. GCP, AWS, Hetzner etc) then you can &lt;a href=&quot;#cloud_vm&quot;&gt;skip this section&lt;/a&gt; and go straight to &amp;quot;Cloud VM&amp;quot; below. &lt;/p&gt;
 
 &lt;p&gt;Create a VM, select &amp;quot;Linux&amp;quot; as the type and &amp;quot;Debian (64 bit)&amp;quot; as the version. The amount of RAM to allocate to the VM varies depending on your workload but as a guide, I rarely allocate less than 4GB and often go for 8GB or 16GB. As a very rough rule of thumb, allocate half of your RAM and available threads to the development VM. Create a new virtual disk, if you&amp;#39;re going to be working with Docker, allocate at least 100GB or so (Docker images add up quickly), choose VDI as the type of image and for optimal performance select &amp;quot;Fixed Size&amp;quot; when asked.&lt;/p&gt;
 
@@ -54,6 +54,8 @@
 &lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;ssh-copy-id -p 2222 USERNAME@localhost
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;On MacOS if you don&amp;#39;t have &lt;code&gt;ssh-copy-id&lt;/code&gt; installed then you can install it with; &lt;code&gt;brew install ssh-copy-id&lt;/code&gt; or &lt;code&gt;sudo port install openssh +ssh-copy-id&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;a id=&quot;cloud_vm&quot;&gt;&lt;/p&gt;
 
 &lt;h2&gt;Cloud VM&lt;/h2&gt;
 
