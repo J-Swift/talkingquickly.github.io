@@ -4,8 +4,9 @@
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
 
-    <title>The Baltics</title>
-    <meta name="description" content="">
+    <title>Kubernetes Single Sign On - A detailed guide</title>
+    
+        <meta name="description" content="Blog by Ben Dixon, Ruby on Rails Developer, about rails, kubernetes, docker, climbing and startups" />
     
 
 
@@ -22,7 +23,7 @@
     <!-- Customisation  -->
     <link rel="stylesheet" type="text/css" href="/assets/css/main.css" />
     <link rel="alternate" type="application/rss+xml" title="RSS" href="/rss.xml"/>
-    <link rel="canonical" href="https://www.talkingquickly.co.uk/scratch/2015-07-16-the-baltics/">
+    <link rel="canonical" href="https://www.talkingquickly.co.uk/kubernetes-sso-a-detailed-guide">
 
 </head>
 <body class="home-template">
@@ -41,46 +42,70 @@
         	
        	</span>
 
-        <h1 class="post-title">The Baltics</h1>
+        <h1 class="post-title">Kubernetes Single Sign On - A detailed guide</h1>
 
         <section class="post-content">
-            <p>Tallinn</p>
+            <p>In this series of posts we cover how to setup a comprehensive group based single sign on system for Kubernetes including the <code>kubectl</code> cli, any web application with ingress, a docker registry and gitea. We&#39;ll cover most of the common SSO models so adapting what&#39;s here to other applications such as Gitlab, Kibana, Grafana etc is simple.</p>
 
-<p>Until I flew with Estonian air, I didn&#39;t know they made jets this small:</p>
+<p>The full solution uses Keycloak backed by OpenLDAP. OpenLDAP is required for the Gitea component, but can be skipped for the other components, including OIDC based SSO for <code>kubectl</code>.</p>
 
-<p>But don&#39;t be deceived, the service was impeccable, any airline that hands out complimentary chocolates has my vote.</p>
+<p>Some of the highlights this series covers are:</p>
 
-<p>oooy</p>
+<ol>
+<li>Login to the <code>kubectl</code> cli using SSO credentials via the browser</li>
+<li>Replace basic auth ingress annotations with equally simple but much more secure SSO annotations</li>
+<li>Push and pull to a secure private docker registry with full ACL</li>
+</ol>
 
-<ul>
-<li>Red Emperor Hostel</li>
-<li>Pita Breads</li>
-<li>Ping pong gangs</li>
-<li>Human Bowling</li>
-<li>Karaoke</li>
-<li>Doesn&#39;t really get dark</li>
-</ul>
+<ol>
+  <li>
+    <a href="/kubernetes-sso-a-comprehensive-guide">
+  <strong>Contents and overview</strong>
+</a>
+  </li>
+  <li>
+    <a href="/installing-openldap-kubernetes-helm">
+  Installing OpenLDAP
+</a>
+  </li>
+  <li>
+    <a href="/installing-keycloak-kubernetes-helm">
+  Installing Keycloak
+</a>
+  </li>
+  <li>
+    <a href="/keycloak-and-openldap-on-kubernetes">
+  Linking Keycloak and OpenLDAP
+</a>
+  </li>
+  <li>
+    <a href="/setting-up-oidc-login-kubernetes-kubectl-with-keycloak">
+  OIDC Kubectl Login with Keycloak
+</a>
+  </li>
+  <li>
+    <a href="/webapp-authentication-keycloak-OAuth2-proxy-nginx-ingress-kubernetes">
+  Authenticate any web app using ingress annotations
+</a>
+  </li>
+  <li>
+    <a href="/gitea-sso-with-keycloak-openldap-openid-connect">
+  Gitea (requires LDAP)
+</a>
+  </li>
+  <li>
+    <a href="/docker-registry-authentication-with-keycloak">
+  Simple Docker Registry
+</a>
+  </li>
+  <li>
+    <a href="/harbor-docker-registry-on-kubernetes-authentication-with-keycloak">
+  Harbor Docker Registry with ACL
+</a>
+  </li>
+</ol>
 
-<p>Riga</p>
-
-<ul>
-<li>Cinnamon Sallies, Seagull Garett, ???</li>
-<li>Take me to every McDonalds in Riga!</li>
-<li>Sign saying 50 Euro fine for having sex in the hostel(!)</li>
-<li>Woken up by a Frenchman with an accordian (trying to wake my friend up)</li>
-<li>Pancake bar</li>
-</ul>
-
-<p>Vilnius</p>
-
-<ul>
-<li>What are the odds, a tattoo</li>
-<li>Some of the best bars for meeting people (Mysteria)</li>
-<li>Meat lovers pub, girl on a date, doing body shots 12 hours ago</li>
-<li>People actually date! </li>
-</ul>
-
-<p>@Embed, the buttery biscuit base</p>
+<p>Finally there were a lot of excellent resources I leant on when creating this series, there&#39;s a summary of the key ones <a href="/kubernetes-sso-links">here</a>.</p>
 
         </section>
 
