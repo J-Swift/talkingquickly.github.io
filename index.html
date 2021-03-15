@@ -56,6 +56,106 @@
 
     <article class="post">
         <header class="post-header">
+            <span class="post-meta"><time datetime="14 Mar 2021">14 Mar 2021</time></span>
+            <h2 class="post-title"><a href="/capistrano-puma-is-not-active-cannot-reload">Capistrano & Puma; service puma is not active, cannot reload</a></h2>
+
+        </header>
+        <section class="post-excerpt">
+            <p><p>When trying to use the Capistrano Puma gem to restart Puma via systemd, we may run into an error along the lines of:</p>
+<div class="highlight"><pre><code class="language-text" data-lang="text"><span></span>puma_APP_NAME.service is not active, cannot reload
+</code></pre></div>
+<p>This typically happens either because the service was never enabled or because in the time which elapsed between it being enabled and the first deploy taking place, it has crashed a sufficient number of times that it is no longer active.</p>
+
+<p>The behaviour we want in this scenario is to reload the service if it is active, otherwise to restart it.</p>
+
+<p>Happily systemctl [supports this out of the box]<a href="https://www.freedesktop.org/software/systemd/man/systemctl.html">https://www.freedesktop.org/software/systemd/man/systemctl.html</a> with <code>systemctl reload-or-restart</code>.</p>
+
+<p>We can add the following to <code>lib/capistrano/tasks</code> to add a task which uses this to the puma namespace provided by the capistrano puma gem:</p>
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span></span><span class="n">namespace</span> <span class="ss">:puma</span> <span class="k">do</span>
+  <span class="n">namespace</span> <span class="ss">:systemd</span> <span class="k">do</span>
+    <span class="n">desc</span> <span class="s1">&#39;Reload the puma service via systemd by sending USR1 (e.g. trigger a zero downtime deploy)&#39;</span>
+    <span class="n">task</span> <span class="ss">:reload</span> <span class="k">do</span>
+      <span class="n">on</span> <span class="n">roles</span><span class="p">(</span><span class="n">fetch</span><span class="p">(</span><span class="ss">:puma_role</span><span class="p">))</span> <span class="k">do</span>
+        <span class="k">if</span> <span class="n">fetch</span><span class="p">(</span><span class="ss">:puma_systemctl_user</span><span class="p">)</span> <span class="o">==</span> <span class="ss">:system</span>
+          <span class="n">sudo</span> <span class="s2">&quot;</span><span class="si">#{</span><span class="n">fetch</span><span class="p">(</span><span class="ss">:puma_systemctl_bin</span><span class="p">)</span><span class="si">}</span><span class="s2"> reload-or-restart </span><span class="si">#{</span><span class="n">fetch</span><span class="p">(</span><span class="ss">:puma_service_unit_name</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">else</span>
+          <span class="n">execute</span> <span class="s2">&quot;</span><span class="si">#{</span><span class="n">fetch</span><span class="p">(</span><span class="ss">:puma_systemctl_bin</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;--user&quot;</span><span class="p">,</span> <span class="s2">&quot;reload&quot;</span><span class="p">,</span> <span class="n">fetch</span><span class="p">(</span><span class="ss">:puma_service_unit_name</span><span class="p">)</span>
+          <span class="n">execute</span> <span class="ss">:loginctl</span><span class="p">,</span> <span class="s2">&quot;enable-linger&quot;</span><span class="p">,</span> <span class="n">fetch</span><span class="p">(</span><span class="ss">:puma_lingering_user</span><span class="p">)</span> <span class="k">if</span> <span class="n">fetch</span><span class="p">(</span><span class="ss">:puma_enable_lingering</span><span class="p">)</span>
+        <span class="k">end</span>
+      <span class="k">end</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+
+<span class="n">after</span> <span class="s1">&#39;deploy:finished&#39;</span><span class="p">,</span> <span class="s1">&#39;puma:systemd:reload&#39;</span>
+</code></pre></div>
+<p>This should be used in conjunction with including the puma systemd tasks in our <code>Capfile</code> using the <code>load_hooks: false</code> option which prevents the default restart task from being called.</p>
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span></span><span class="n">install_plugin</span> <span class="no">Capistrano</span><span class="o">::</span><span class="no">Puma</span><span class="o">::</span><span class="no">Systemd</span><span class="p">,</span> <span class="ss">load_hooks</span><span class="p">:</span> <span class="kp">false</span>
+</code></pre></div>
+<p>The use of the above task also allows for zero downtime deploys when used with the relevant puma configuration and systemd unit file. See <a href="/capistrano-puma-neither-valid-executable-nor-absolute-path">this post</a> for more on the systemd unit file and <a href="https://github.com/TalkingQuickly/rdra_rails6_example">this repository</a> for a working example.</p>
+</p>
+        </section>
+    </article>
+
+    
+
+    <article class="post">
+        <header class="post-header">
+            <span class="post-meta"><time datetime="14 Mar 2021">14 Mar 2021</time></span>
+            <h2 class="post-title"><a href="/capistrano-puma-neither-valid-executable-nor-absolute-path">Capistrano & Puma; neither a valid executable name nor an absolute path</a></h2>
+
+        </header>
+        <section class="post-excerpt">
+            <p><p>When attempting to deploy a Rails application using the puma web sever using the systemd functionality in the capistrano puma gem, we may receive the error message:</p>
+<div class="highlight"><pre><code class="language-text" data-lang="text"><span></span>Neither a valid executable name nor an absolute path
+</code></pre></div>
+<p>When attempting to start the systemd service. This most often occurs when using the capistrano rbenv plugin. This is because the Capistrano rbenv plugin modifies the <code>SSHKit.config.command_map[:bundle]</code> path to include the <code>RBENV_ROOT</code> and <code>RBENV_VERSION</code> environment variables at the start of the <code>bundle</code> path. Systemd doesn&#39;t support <code>Exec</code> command starting with environment variables, instead requiring them to be in separate <code>Environment</code> lines.</p>
+
+<p>We can fix this by overriding the <code>puma.server.erb</code> template with a new systemd unit file as follows:</p>
+<div class="highlight"><pre><code class="language-text" data-lang="text"><span></span>[Unit]
+Description=Puma HTTP Server for &lt;%= &quot;#{fetch(:application)} (#{fetch(:stage)})&quot; %&gt;
+After=network.target
+
+[Service]
+Type=simple
+&lt;%=&quot;User=#{puma_user(@role)}&quot; if fetch(:puma_systemctl_user) == :system %&gt;
+WorkingDirectory=&lt;%= current_path %&gt;
+ExecStart=/usr/local/rbenv/bin/rbenv exec bundle exec puma -C &lt;%= fetch(:puma_conf) %&gt;
+ExecReload=/bin/kill -USR1 $MAINPID
+ExecStop=/bin/kill -TSTP $MAINPID
+StandardOutput=append:&lt;%= fetch(:puma_access_log) %&gt;
+StandardError=append:&lt;%= fetch(:puma_error_log) %&gt;
+&lt;%=&quot;EnvironmentFile=#{fetch(:puma_service_unit_env_file)}&quot; if fetch(:puma_service_unit_env_file) %&gt;
+&lt;% fetch(:puma_service_unit_env_vars, []).each do |environment_variable| %&gt;
+&lt;%=&quot;Environment=#{environment_variable}&quot; %&gt;
+&lt;% end %&gt;
+
+Environment=RBENV_VERSION=&lt;%= fetch(:rbenv_ruby) %&gt;
+Environment=RBENV_ROOT=/usr/local/rbenv
+
+Restart=always
+RestartSec=1
+
+SyslogIdentifier=puma_&lt;%= fetch(:application) %&gt;_&lt;%= fetch(:stage) %&gt;
+
+[Install]
+WantedBy=&lt;%=(fetch(:puma_systemctl_user) == :system) ? &quot;multi-user.target&quot; : &quot;default.target&quot;%&gt;
+</code></pre></div>
+<p>Note that this hardcodes the path to rbenv so if the path is different, for example because it&#39;s a user install not a system install, this will need updating.</p>
+
+<p>This unit file also adds an <code>ExecReload</code> option to allow us to use systemd for zero downtime deploys.</p>
+
+<p>For a fully working example see <a href="https://github.com/TalkingQuickly/rdra_rails6_example/">this repository</a>.</p>
+
+<p>There&#39;s more information in <a href="https://github.com/seuros/capistrano-puma/issues/313">this github issue</a>.</p>
+</p>
+        </section>
+    </article>
+
+    
+
+    <article class="post">
+        <header class="post-header">
             <span class="post-meta"><time datetime="25 Feb 2021">25 Feb 2021</time></span>
             <h2 class="post-title"><a href="/kubernetes-sso-a-detailed-guide">Kubernetes Single Sign On - A detailed guide</a></h2>
 
@@ -336,34 +436,6 @@
 <p><a href="https://www.ansible.com">Ansible</a> is a tool most commonly associated with the setup of servers and infrastructure. But more broadly it&#39;s an excellent tool for automating the setup of any computer, including laptops and workstations. Of all the configuration management tools out there it&#39;s by far the easiest one to use - requiring no devops background at all - and has an amazing community supporting it.</p>
 
 <p>This posts outlines the setup I&#39;ve evolved over the previous few years which means setting up a new Macbook pro for fairly broad development (Rails, Javascript, Elixir, Python, Android &amp; iOS) now takes just a couple of commands. This includes loading all my shell customisations and GUI apps like Chrome, Office, Virtualbox etc.</p>
-</p>
-        </section>
-    </article>
-
-    
-
-    <article class="post">
-        <header class="post-header">
-            <span class="post-meta"><time datetime="28 Apr 2020">28 Apr 2020</time></span>
-            <h2 class="post-title"><a href="/2020/04/nodegroup-failed-to-stabilize-internal-failure/">Cloudformation - NodeGroup failed to stabilize: Internal Failure</a></h2>
-
-        </header>
-        <section class="post-excerpt">
-            <p><p>A recent change to AWS NodeGroup behaviour means that some CloudFormation stacks which create EKS NodeGroups may start to fail with the error <code>Nodegroup the-nodegroup-name failed to stabilize: Internal Failure</code>. Googling currently doesn&#39;t return much. The problem is related to <a href="https://aws.amazon.com/blogs/containers/upcoming-changes-to-ip-assignment-for-eks-managed-node-groups/">this change</a> relating to whether or not public IP&#39;s are assigned to nodes.</p>
-</p>
-        </section>
-    </article>
-
-    
-
-    <article class="post">
-        <header class="post-header">
-            <span class="post-meta"><time datetime="01 Sep 2019">01 Sep 2019</time></span>
-            <h2 class="post-title"><a href="/ninety-days-of-learning">90 Days of Learning</a></h2>
-
-        </header>
-        <section class="post-excerpt">
-            <p><p>An area I’m keen to experiment with batching strategies for is learning. Specifically getting “over the hump” with things that require a substantial upfront commitment before a return is delivered. Today I&#39;m kicking off a 90 day experiment of <a href="/habits-and-batching">batching</a> together learning three such things.</p>
 </p>
         </section>
     </article>

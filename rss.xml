@@ -3,13 +3,105 @@
 <generator uri="http://jekyllrb.com" version="3.7.2">Jekyll</generator>
 <link href="https://www.talkingquickly.co.uk/rss.xml" rel="self" type="application/atom+xml" />
 <link href="https://www.talkingquickly.co.uk/" rel="alternate" type="text/html" />
-<updated>2021-03-02T04:54:26+00:00</updated>
+<updated>2021-03-15T03:17:06+00:00</updated>
 <id>https://www.talkingquickly.co.uk/</id>
 <title>talkingquickly</title>
 <subtitle>kubernetes, rails, stress free deployment and small steps taken quickly</subtitle>
 <author>
 <name>Ben Dixon</name>
 </author>
+<entry>
+<title>Capistrano &amp;amp; Puma; service puma is not active, cannot reload</title>
+<link href="https://www.talkingquickly.co.uk/capistrano-puma-is-not-active-cannot-reload" rel="alternate" type="text/html" title="Capistrano &amp; Puma; service puma is not active, cannot reload" />
+<published>2021-03-14T15:40:00+00:00</published>
+<updated>2021-03-14T15:40:00+00:00</updated>
+<id>https://www.talkingquickly.co.uk/capistrano-puma-service-not-active-cannot-reload</id>
+<content type="html" xml:base="https://www.talkingquickly.co.uk/capistrano-puma-is-not-active-cannot-reload">&lt;p&gt;When trying to use the Capistrano Puma gem to restart Puma via systemd, we may run into an error along the lines of:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;puma_APP_NAME.service is not active, cannot reload
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;This typically happens either because the service was never enabled or because in the time which elapsed between it being enabled and the first deploy taking place, it has crashed a sufficient number of times that it is no longer active.&lt;/p&gt;
+
+&lt;p&gt;The behaviour we want in this scenario is to reload the service if it is active, otherwise to restart it.&lt;/p&gt;
+
+&lt;p&gt;Happily systemctl [supports this out of the box]&lt;a href=&quot;https://www.freedesktop.org/software/systemd/man/systemctl.html&quot;&gt;https://www.freedesktop.org/software/systemd/man/systemctl.html&lt;/a&gt; with &lt;code&gt;systemctl reload-or-restart&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;We can add the following to &lt;code&gt;lib/capistrano/tasks&lt;/code&gt; to add a task which uses this to the puma namespace provided by the capistrano puma gem:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-ruby&quot; data-lang=&quot;ruby&quot;&gt;&lt;span&gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;namespace&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:puma&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;do&lt;/span&gt;
+  &lt;span class=&quot;n&quot;&gt;namespace&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:systemd&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;do&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;desc&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&amp;#39;Reload the puma service via systemd by sending USR1 (e.g. trigger a zero downtime deploy)&amp;#39;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;task&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:reload&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;do&lt;/span&gt;
+      &lt;span class=&quot;n&quot;&gt;on&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;roles&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;fetch&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;:puma_role&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;do&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;fetch&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;:puma_systemctl_user&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:system&lt;/span&gt;
+          &lt;span class=&quot;n&quot;&gt;sudo&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;&lt;/span&gt;&lt;span class=&quot;si&quot;&gt;#{&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;fetch&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;:puma_systemctl_bin&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;si&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt; reload-or-restart &lt;/span&gt;&lt;span class=&quot;si&quot;&gt;#{&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;fetch&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;:puma_service_unit_name&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;si&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&amp;quot;&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;else&lt;/span&gt;
+          &lt;span class=&quot;n&quot;&gt;execute&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;&lt;/span&gt;&lt;span class=&quot;si&quot;&gt;#{&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;fetch&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;:puma_systemctl_bin&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;si&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;--user&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;reload&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;fetch&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;:puma_service_unit_name&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+          &lt;span class=&quot;n&quot;&gt;execute&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:loginctl&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;enable-linger&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;fetch&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;:puma_lingering_user&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;fetch&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;:puma_enable_lingering&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;end&lt;/span&gt;
+      &lt;span class=&quot;k&quot;&gt;end&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;end&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;end&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;end&lt;/span&gt;
+
+&lt;span class=&quot;n&quot;&gt;after&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&amp;#39;deploy:finished&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&amp;#39;puma:systemd:reload&amp;#39;&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;This should be used in conjunction with including the puma systemd tasks in our &lt;code&gt;Capfile&lt;/code&gt; using the &lt;code&gt;load_hooks: false&lt;/code&gt; option which prevents the default restart task from being called.&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-ruby&quot; data-lang=&quot;ruby&quot;&gt;&lt;span&gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;install_plugin&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;Capistrano&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;Puma&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;no&quot;&gt;Systemd&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;load_hooks&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kp&quot;&gt;false&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;The use of the above task also allows for zero downtime deploys when used with the relevant puma configuration and systemd unit file. See &lt;a href=&quot;/capistrano-puma-neither-valid-executable-nor-absolute-path&quot;&gt;this post&lt;/a&gt; for more on the systemd unit file and &lt;a href=&quot;https://github.com/TalkingQuickly/rdra_rails6_example&quot;&gt;this repository&lt;/a&gt; for a working example.&lt;/p&gt;
+</content>
+<summary>When trying to use the Capistrano Puma gem to restart Puma via systemd, we may run into an error along the lines of:puma_APP_NAME.service is not active, cannot reloadThis typically happens either because the service was never enabled or because in the time which elapsed between it being enabled and the first deploy taking place, it has crashed a sufficient number of times that it is no longer active.The behaviour we want in this scenario is to reload the service if it is active, otherwise to restart it.Happily systemctl [supports this out of the box]https://www.freedesktop.org/software/systemd/man/systemctl.html with systemctl reload-or-restart.We can add the following to lib/capistrano/tasks to add a task which uses this to the puma namespace provided by the capistrano puma gem:namespace :puma do  namespace :systemd do    desc &amp;#39;Reload the puma service via systemd by sending USR1 (e.g. trigger a zero downtime deploy)&amp;#39;    task :reload do      on roles(fetch(:puma_role)) do        if fetch(:puma_systemctl_user) == :system          sudo &amp;quot;#{fetch(:puma_systemctl_bin)} reload-or-restart #{fetch(:puma_service_unit_name)}&amp;quot;        else          execute &amp;quot;#{fetch(:puma_systemctl_bin)}&amp;quot;, &amp;quot;--user&amp;quot;, &amp;quot;reload&amp;quot;, fetch(:puma_service_unit_name)          execute :loginctl, &amp;quot;enable-linger&amp;quot;, fetch(:puma_lingering_user) if fetch(:puma_enable_lingering)        end      end    end  endendafter &amp;#39;deploy:finished&amp;#39;, &amp;#39;puma:systemd:reload&amp;#39;This should be used in conjunction with including the puma systemd tasks in our Capfile using the load_hooks: false option which prevents the default restart task from being called.install_plugin Capistrano::Puma::Systemd, load_hooks: falseThe use of the above task also allows for zero downtime deploys when used with the relevant puma configuration and systemd unit file. See this post for more on the systemd unit file and this repository for a working example.</summary>
+</entry>
+<entry>
+<title>Capistrano &amp;amp; Puma; neither a valid executable name nor an absolute path</title>
+<link href="https://www.talkingquickly.co.uk/capistrano-puma-neither-valid-executable-nor-absolute-path" rel="alternate" type="text/html" title="Capistrano &amp; Puma; neither a valid executable name nor an absolute path" />
+<published>2021-03-14T15:40:00+00:00</published>
+<updated>2021-03-14T15:40:00+00:00</updated>
+<id>https://www.talkingquickly.co.uk/capistrano-puma-neither-a-valid-executable-name-nor-an-absolute-path</id>
+<content type="html" xml:base="https://www.talkingquickly.co.uk/capistrano-puma-neither-valid-executable-nor-absolute-path">&lt;p&gt;When attempting to deploy a Rails application using the puma web sever using the systemd functionality in the capistrano puma gem, we may receive the error message:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;Neither a valid executable name nor an absolute path
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;When attempting to start the systemd service. This most often occurs when using the capistrano rbenv plugin. This is because the Capistrano rbenv plugin modifies the &lt;code&gt;SSHKit.config.command_map[:bundle]&lt;/code&gt; path to include the &lt;code&gt;RBENV_ROOT&lt;/code&gt; and &lt;code&gt;RBENV_VERSION&lt;/code&gt; environment variables at the start of the &lt;code&gt;bundle&lt;/code&gt; path. Systemd doesn&amp;#39;t support &lt;code&gt;Exec&lt;/code&gt; command starting with environment variables, instead requiring them to be in separate &lt;code&gt;Environment&lt;/code&gt; lines.&lt;/p&gt;
+
+&lt;p&gt;We can fix this by overriding the &lt;code&gt;puma.server.erb&lt;/code&gt; template with a new systemd unit file as follows:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;[Unit]
+Description=Puma HTTP Server for &amp;lt;%= &amp;quot;#{fetch(:application)} (#{fetch(:stage)})&amp;quot; %&amp;gt;
+After=network.target
+
+[Service]
+Type=simple
+&amp;lt;%=&amp;quot;User=#{puma_user(@role)}&amp;quot; if fetch(:puma_systemctl_user) == :system %&amp;gt;
+WorkingDirectory=&amp;lt;%= current_path %&amp;gt;
+ExecStart=/usr/local/rbenv/bin/rbenv exec bundle exec puma -C &amp;lt;%= fetch(:puma_conf) %&amp;gt;
+ExecReload=/bin/kill -USR1 $MAINPID
+ExecStop=/bin/kill -TSTP $MAINPID
+StandardOutput=append:&amp;lt;%= fetch(:puma_access_log) %&amp;gt;
+StandardError=append:&amp;lt;%= fetch(:puma_error_log) %&amp;gt;
+&amp;lt;%=&amp;quot;EnvironmentFile=#{fetch(:puma_service_unit_env_file)}&amp;quot; if fetch(:puma_service_unit_env_file) %&amp;gt;
+&amp;lt;% fetch(:puma_service_unit_env_vars, []).each do |environment_variable| %&amp;gt;
+&amp;lt;%=&amp;quot;Environment=#{environment_variable}&amp;quot; %&amp;gt;
+&amp;lt;% end %&amp;gt;
+
+Environment=RBENV_VERSION=&amp;lt;%= fetch(:rbenv_ruby) %&amp;gt;
+Environment=RBENV_ROOT=/usr/local/rbenv
+
+Restart=always
+RestartSec=1
+
+SyslogIdentifier=puma_&amp;lt;%= fetch(:application) %&amp;gt;_&amp;lt;%= fetch(:stage) %&amp;gt;
+
+[Install]
+WantedBy=&amp;lt;%=(fetch(:puma_systemctl_user) == :system) ? &amp;quot;multi-user.target&amp;quot; : &amp;quot;default.target&amp;quot;%&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;Note that this hardcodes the path to rbenv so if the path is different, for example because it&amp;#39;s a user install not a system install, this will need updating.&lt;/p&gt;
+
+&lt;p&gt;This unit file also adds an &lt;code&gt;ExecReload&lt;/code&gt; option to allow us to use systemd for zero downtime deploys.&lt;/p&gt;
+
+&lt;p&gt;For a fully working example see &lt;a href=&quot;https://github.com/TalkingQuickly/rdra_rails6_example/&quot;&gt;this repository&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;There&amp;#39;s more information in &lt;a href=&quot;https://github.com/seuros/capistrano-puma/issues/313&quot;&gt;this github issue&lt;/a&gt;.&lt;/p&gt;
+</content>
+<summary>When attempting to deploy a Rails application using the puma web sever using the systemd functionality in the capistrano puma gem, we may receive the error message:Neither a valid executable name nor an absolute pathWhen attempting to start the systemd service. This most often occurs when using the capistrano rbenv plugin. This is because the Capistrano rbenv plugin modifies the SSHKit.config.command_map[:bundle] path to include the RBENV_ROOT and RBENV_VERSION environment variables at the start of the bundle path. Systemd doesn&amp;#39;t support Exec command starting with environment variables, instead requiring them to be in separate Environment lines.We can fix this by overriding the puma.server.erb template with a new systemd unit file as follows:[Unit]Description=Puma HTTP Server for &amp;lt;%= &amp;quot;#{fetch(:application)} (#{fetch(:stage)})&amp;quot; %&amp;gt;After=network.target[Service]Type=simple&amp;lt;%=&amp;quot;User=#{puma_user(@role)}&amp;quot; if fetch(:puma_systemctl_user) == :system %&amp;gt;WorkingDirectory=&amp;lt;%= current_path %&amp;gt;ExecStart=/usr/local/rbenv/bin/rbenv exec bundle exec puma -C &amp;lt;%= fetch(:puma_conf) %&amp;gt;ExecReload=/bin/kill -USR1 $MAINPIDExecStop=/bin/kill -TSTP $MAINPIDStandardOutput=append:&amp;lt;%= fetch(:puma_access_log) %&amp;gt;StandardError=append:&amp;lt;%= fetch(:puma_error_log) %&amp;gt;&amp;lt;%=&amp;quot;EnvironmentFile=#{fetch(:puma_service_unit_env_file)}&amp;quot; if fetch(:puma_service_unit_env_file) %&amp;gt;&amp;lt;% fetch(:puma_service_unit_env_vars, []).each do |environment_variable| %&amp;gt;&amp;lt;%=&amp;quot;Environment=#{environment_variable}&amp;quot; %&amp;gt;&amp;lt;% end %&amp;gt;Environment=RBENV_VERSION=&amp;lt;%= fetch(:rbenv_ruby) %&amp;gt;Environment=RBENV_ROOT=/usr/local/rbenvRestart=alwaysRestartSec=1SyslogIdentifier=puma_&amp;lt;%= fetch(:application) %&amp;gt;_&amp;lt;%= fetch(:stage) %&amp;gt;[Install]WantedBy=&amp;lt;%=(fetch(:puma_systemctl_user) == :system) ? &amp;quot;multi-user.target&amp;quot; : &amp;quot;default.target&amp;quot;%&amp;gt;Note that this hardcodes the path to rbenv so if the path is different, for example because it&amp;#39;s a user install not a system install, this will need updating.This unit file also adds an ExecReload option to allow us to use systemd for zero downtime deploys.For a fully working example see this repository.There&amp;#39;s more information in this github issue.</summary>
+</entry>
 <entry>
 <title>Kubernetes Single Sign On - A detailed guide</title>
 <link href="https://www.talkingquickly.co.uk/kubernetes-sso-a-detailed-guide" rel="alternate" type="text/html" title="Kubernetes Single Sign On - A detailed guide" />
@@ -1197,160 +1289,5 @@ result: 0 Success
 &lt;p&gt;{% include kubernetes-sso/contents.html active=&amp;quot;openldap&amp;quot; %}&lt;/p&gt;
 </content>
 <summary>In this post we cover how to install OpenLDAP on Kubernetes and how to test that it is working using the command line.LDAP while an older - and in some ways more challenging to work with - approach to SSO than something like OIDC, is still the de-facto standard.There are many popular applications which don&amp;#39;t support OIDC but do support LDAP. This is likely to be the case for many years to come so for now, any robust SSO solution is likely to need to support LDAP.This post is part of a series on single sign on for Kubernetes</summary>
-</entry>
-<entry>
-<title>Installing Keycloak on Kubernetes</title>
-<link href="https://www.talkingquickly.co.uk/installing-keycloak-kubernetes-helm" rel="alternate" type="text/html" title="Installing Keycloak on Kubernetes" />
-<published>2021-01-27T15:40:00+00:00</published>
-<updated>2021-01-27T15:40:00+00:00</updated>
-<id>https://www.talkingquickly.co.uk/installing-keycloak-on-kubernetes</id>
-<content type="html" xml:base="https://www.talkingquickly.co.uk/installing-keycloak-kubernetes-helm">&lt;p&gt;Keycloak is a widely used open source identity and access management system. Think Okta but open source. This is where users will actually enter their username and password for services and where we&amp;#39;ll configure which users can login to which applications. It will also provide users with a single directory of applications they can login to.&lt;/p&gt;
-
-&lt;p&gt;In this post - as part of the larger series on Kubernetes SSO - we cover how to install Keycloak on Kubernetes.&lt;/p&gt;
-
-&lt;!--more--&gt;
-
-&lt;p&gt;{% include kubernetes-sso/contents.html active=&amp;quot;keycloak&amp;quot; %}&lt;/p&gt;
-
-&lt;p&gt;{% include kubernetes-sso/pre-reqs.html %}&lt;/p&gt;
-
-&lt;h2&gt;Install Keycloak&lt;/h2&gt;
-
-&lt;p&gt;Helm 3 is migrating charts out of it&amp;#39;s centrally managed repository and into decentralised ones, so to access the Keycloak Chart we&amp;#39;ll need to add the relevant repository.&lt;/p&gt;
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;helm repo add codecentric https://codecentric.github.io/helm-charts
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;p&gt;We can see &lt;a href=&quot;https://github.com/codecentric/helm-charts/tree/master/charts/keycloak&quot;&gt;details of the chart itself here&lt;/a&gt;.&lt;/p&gt;
-
-&lt;p&gt;For a basic configuration, we need to configure Ingress and enable Postgres as the data store. &lt;/p&gt;
-
-&lt;p&gt;This assumes you&amp;#39;re working on a cluster with support for Ingress and Persistent Volumes. In this case I have a wildcard DNS record for &lt;code&gt;*.ssotest.staging.talkingquickly.co.uk&lt;/code&gt; which points at my test cluster. So our initial values file &lt;code&gt;keycloak/values-keycloak&lt;/code&gt; looks something like:&lt;/p&gt;
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-yaml&quot; data-lang=&quot;yaml&quot;&gt;&lt;span&gt;&lt;/span&gt;&lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;extraEnv&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;p p-Indicator&quot;&gt;|&lt;/span&gt;
-  &lt;span class=&quot;no&quot;&gt;- name: KEYCLOAK_LOGLEVEL&lt;/span&gt;
-    &lt;span class=&quot;no&quot;&gt;value: DEBUG&lt;/span&gt;
-  &lt;span class=&quot;no&quot;&gt;- name: KEYCLOAK_USER&lt;/span&gt;
-    &lt;span class=&quot;no&quot;&gt;value: admin&lt;/span&gt;
-  &lt;span class=&quot;no&quot;&gt;- name: KEYCLOAK_PASSWORD&lt;/span&gt;
-    &lt;span class=&quot;no&quot;&gt;value: as897gsdfs766dfsgjhsdf&lt;/span&gt;
-  &lt;span class=&quot;no&quot;&gt;- name: PROXY_ADDRESS_FORWARDING&lt;/span&gt;
-    &lt;span class=&quot;no&quot;&gt;value: &amp;quot;true&amp;quot;&lt;/span&gt;
-
-&lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;ingress&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt;
-  &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;enabled&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;true&lt;/span&gt;
-  &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;annotations&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt;
-    &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;cert-manager.io/cluster-issuer&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;letsencrypt-production&lt;/span&gt;
-  &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;rules&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt;
-    &lt;span class=&quot;p p-Indicator&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;host&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;sso.ssotest.staging.talkingquickly.co.uk&lt;/span&gt;
-      &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;paths&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt;
-        &lt;span class=&quot;p p-Indicator&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;/&lt;/span&gt;
-&lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;args&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt;
-  &lt;span class=&quot;p p-Indicator&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;-Dkeycloak.profile.feature.docker=enabled&lt;/span&gt;
-
-  &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;tls&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt;
-  &lt;span class=&quot;p p-Indicator&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;hosts&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt;
-    &lt;span class=&quot;p p-Indicator&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;sso.ssotest.staging.talkingquickly.co.uk&lt;/span&gt;
-    &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;secretName&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;keycloak-tld-secret&lt;/span&gt;
-
-&lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;postgresql&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt;
-  &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;enabled&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;true&lt;/span&gt;
-  &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;postgresqlPassword&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;asdfaso97sadfjylfasdsf78&lt;/span&gt;
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;p&gt;We can then install it with:&lt;/p&gt;
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;helm upgrade --install keycloak codecentric/keycloak --values keycloak/values-keycloak.yml
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;p&gt;We&amp;#39;ve set the initial username and password of the keycloak user in the environment variables &lt;code&gt;KEYCLOAK_USER&lt;/code&gt; and &lt;code&gt;KEYCLOAK_PASSWORD&lt;/code&gt; in our &lt;code&gt;values-keycloak.yml&lt;/code&gt;, well need these to login to the administrative console.&lt;/p&gt;
-
-&lt;p&gt;We can then go to whichever URL we&amp;#39;ve selected for Ingress, in my case this was &lt;code&gt;https://sso.ssotest.staging.talkingquickly.co.uk&lt;/code&gt;.&lt;/p&gt;
-
-&lt;p&gt;And can then choose to login to the administrative console. From here we can create users and &amp;quot;client&amp;quot; apps that we&amp;#39;ll use for configuring other applications with Keycloak SSO.&lt;/p&gt;
-
-&lt;p&gt;Note that logging into the administrative console is separate to logging in as a Keycloak service user.&lt;/p&gt;
-
-&lt;p&gt;Within Keycloak we can create multiple &amp;quot;realms&amp;quot; which are essentially standalone auth services. For example we might have one realm for internal systems and one real for customers. The default realm is called &amp;quot;master&amp;quot; and so using my ingress URL, users would login to this realm at &lt;a href=&quot;https://sso.ssotest.staging.talkingquickly.co.uk/auth/realms/master/account&quot;&gt;https://sso.ssotest.staging.talkingquickly.co.uk/auth/realms/master/account&lt;/a&gt;. Visiting &lt;a href=&quot;https://sso.ssotest.staging.talkingquickly.co.uk/auth/realms/master&quot;&gt;https://sso.ssotest.staging.talkingquickly.co.uk/auth/realms/master&lt;/a&gt; would give some useful information about the realm.&lt;/p&gt;
-
-&lt;p&gt;A common source of confusion is attempting to test logins using administrative credentials rather than credentials from a user who has been created in a specific realm. Incognito or Sandboxed browser tabs are useful for this.&lt;/p&gt;
-
-&lt;p&gt;{% include kubernetes-sso/contents.html active=&amp;quot;keycloak&amp;quot; %}&lt;/p&gt;
-</content>
-<summary>Keycloak is a widely used open source identity and access management system. Think Okta but open source. This is where users will actually enter their username and password for services and where we&amp;#39;ll configure which users can login to which applications. It will also provide users with a single directory of applications they can login to.In this post - as part of the larger series on Kubernetes SSO - we cover how to install Keycloak on Kubernetes.</summary>
-</entry>
-<entry>
-<title>Useful Links when Setting up SSO on Kubernetes</title>
-<link href="https://www.talkingquickly.co.uk/kubernetes-sso-links" rel="alternate" type="text/html" title="Useful Links when Setting up SSO on Kubernetes" />
-<published>2021-01-15T15:40:00+00:00</published>
-<updated>2021-01-15T15:40:00+00:00</updated>
-<id>https://www.talkingquickly.co.uk/useful-links-setting-up-kubernetes-sso</id>
-<content type="html" xml:base="https://www.talkingquickly.co.uk/kubernetes-sso-links">&lt;p&gt;While creating the comprehensive guide to Kubernetes SSO, I leant heavily on many great pieces of existing content, a lot of them are included here.&lt;/p&gt;
-
-&lt;!--more--&gt;
-
-&lt;p&gt;LDAP section of the Keycloak manual: &lt;a href=&quot;https://www.keycloak.org/docs/6.0/server_admin/#_ldap&quot;&gt;https://www.keycloak.org/docs/6.0/server_admin/#_ldap&lt;/a&gt;&lt;/p&gt;
-
-&lt;p&gt;Tutorial on Keycloak + OpenLDAP: &lt;a href=&quot;https://geek-cookbook.funkypenguin.co.nz/recipes/keycloak/authenticate-against-openldap/&quot;&gt;https://geek-cookbook.funkypenguin.co.nz/recipes/keycloak/authenticate-against-openldap/&lt;/a&gt;&lt;/p&gt;
-
-&lt;p&gt;Using Keycloak to authenticate general web applications (sidecar approach): &lt;a href=&quot;https://www.openshift.com/blog/adding-authentication-to-your-kubernetes-web-applications-with-keycloak&quot;&gt;https://www.openshift.com/blog/adding-authentication-to-your-kubernetes-web-applications-with-keycloak&lt;/a&gt;&lt;/p&gt;
-
-&lt;p&gt;Gatekeeper (by Keycloak) &lt;a href=&quot;https://www.keycloak.org/docs/latest/securing_apps/index.html#_keycloak_generic_adapter&quot;&gt;https://www.keycloak.org/docs/latest/securing_apps/index.html#_keycloak_generic_adapter&lt;/a&gt;&lt;/p&gt;
-
-&lt;p&gt;Gatekeeper (by Keycloak) on docker hub: &lt;a href=&quot;https://hub.docker.com/r/keycloak/keycloak-gatekeeper/&quot;&gt;https://hub.docker.com/r/keycloak/keycloak-gatekeeper/&lt;/a&gt;&lt;/p&gt;
-
-&lt;p&gt;Replacement for Gatekeeper (which is now EOL) &lt;a href=&quot;https://github.com/oauth2-proxy/oauth2-proxy&quot;&gt;https://github.com/oauth2-proxy/oauth2-proxy&lt;/a&gt;&lt;/p&gt;
-
-&lt;p&gt;Docker registry authentication with Keycloak: &lt;a href=&quot;https://developers.redhat.com/blog/2017/10/31/docker-authentication-keycloak/&quot;&gt;https://developers.redhat.com/blog/2017/10/31/docker-authentication-keycloak/&lt;/a&gt;&lt;/p&gt;
-
-&lt;p&gt;Gitea authentication documentation: &lt;a href=&quot;https://docs.gitea.io/en-us/authentication/&quot;&gt;https://docs.gitea.io/en-us/authentication/&lt;/a&gt;&lt;/p&gt;
-
-&lt;p&gt;oAuth 2 with Nginx Ingress; &lt;a href=&quot;https://kubernetes.github.io/ingress-nginx/examples/auth/oauth-external-auth/&quot;&gt;https://kubernetes.github.io/ingress-nginx/examples/auth/oauth-external-auth/&lt;/a&gt;&lt;/p&gt;
-
-&lt;p&gt;oAuth2Proxy which supports keycloak as a provider: &lt;a href=&quot;https://github.com/oauth2-proxy/oauth2-proxy&quot;&gt;https://github.com/oauth2-proxy/oauth2-proxy&lt;/a&gt;&lt;/p&gt;
-
-&lt;p&gt;Another tutorial on using oauth-proxy with nginx auth: &lt;a href=&quot;https://www.digitalocean.com/community/tutorials/how-to-protect-private-kubernetes-services-behind-a-github-login-with-oauth2_proxy&quot;&gt;https://www.digitalocean.com/community/tutorials/how-to-protect-private-kubernetes-services-behind-a-github-login-with-oauth2_proxy&lt;/a&gt;&lt;/p&gt;
-
-&lt;p&gt;Introduction to the ldapsearch cli utility: &lt;a href=&quot;https://www.splunk.com/en_us/blog/tips-and-tricks/ldapsearch-is-your-friend.html&quot;&gt;https://www.splunk.com/en_us/blog/tips-and-tricks/ldapsearch-is-your-friend.html&lt;/a&gt;&lt;/p&gt;
-
-&lt;p&gt;Deep dive into LDAP password encryption: &lt;a href=&quot;https://www.redpill-linpro.com/techblog/2016/08/16/ldap-password-hash.html&quot;&gt;https://www.redpill-linpro.com/techblog/2016/08/16/ldap-password-hash.html&lt;/a&gt;&lt;/p&gt;
-
-&lt;p&gt;Introduction to &amp;quot;OUs&amp;#39; (organisational units) in LDAP: &lt;a href=&quot;https://www.theurbanpenguin.com/openldap-ous/&quot;&gt;https://www.theurbanpenguin.com/openldap-ous/&lt;/a&gt;&lt;/p&gt;
-
-&lt;p&gt;Article on synchronising groups between LDAP and Keycloak: &lt;a href=&quot;https://www.janua.fr/mapping-ldap-group-and-roles-to-redhat-sso-keycloak/&quot;&gt;https://www.janua.fr/mapping-ldap-group-and-roles-to-redhat-sso-keycloak/&lt;/a&gt;&lt;/p&gt;
-
-&lt;p&gt;Selection of examples of &lt;code&gt;ldapsearch&lt;/code&gt; usage: &lt;a href=&quot;https://docs.oracle.com/cd/E19450-01/820-6169/ldapsearch-examples.html&quot;&gt;https://docs.oracle.com/cd/E19450-01/820-6169/ldapsearch-examples.html&lt;/a&gt;&lt;/p&gt;
-
-&lt;p&gt;Thread on How Gitea treats Oauth2 and LDAP etc logins differently: &lt;a href=&quot;https://github.com/go-gitea/gitea/issues/1124?_pjax=%23js-repo-pjax-container#issuecomment-284911694&quot;&gt;https://github.com/go-gitea/gitea/issues/1124?_pjax=%23js-repo-pjax-container#issuecomment-284911694&lt;/a&gt;&lt;/p&gt;
-
-&lt;p&gt;Gitea LDAP documentation: &lt;a href=&quot;https://docs.gitea.io/en-us/authentication/&quot;&gt;https://docs.gitea.io/en-us/authentication/&lt;/a&gt;&lt;/p&gt;
-
-&lt;p&gt;Some examples of LDAP search filters: &lt;a href=&quot;https://confluence.atlassian.com/kb/how-to-write-ldap-search-filters-792496933.html&quot;&gt;https://confluence.atlassian.com/kb/how-to-write-ldap-search-filters-792496933.html&lt;/a&gt;&lt;/p&gt;
-
-&lt;p&gt;How to enable the &lt;code&gt;memberOf&lt;/code&gt; feature in OpenLDAP: &lt;a href=&quot;https://technicalnotes.wordpress.com/2014/04/19/openldap-setup-with-memberof-overlay/&quot;&gt;https://technicalnotes.wordpress.com/2014/04/19/openldap-setup-with-memberof-overlay/&lt;/a&gt;&lt;/p&gt;
-
-&lt;p&gt;LDIF files for enabling the &lt;code&gt;memberOf&lt;/code&gt; feature in OpenLDAP: &lt;a href=&quot;https://www.adimian.com/blog/2014/10/how-to-enable-memberof-using-openldap/&quot;&gt;https://www.adimian.com/blog/2014/10/how-to-enable-memberof-using-openldap/&lt;/a&gt;&lt;/p&gt;
-
-&lt;p&gt;Detailed Github issue on getting &lt;code&gt;memberOf&lt;/code&gt; to work with the docker openldap image: &lt;a href=&quot;https://github.com/osixia/docker-openldap/issues/304&quot;&gt;https://github.com/osixia/docker-openldap/issues/304&lt;/a&gt;&lt;/p&gt;
-
-&lt;p&gt;Kubernetes Day 2 operations inc OIDC (this article is fantastic) &lt;a href=&quot;https://medium.com/@mrbobbytables/kubernetes-day-2-operations-authn-authz-with-oidc-and-a-little-help-from-keycloak-de4ea1bdbbe&quot;&gt;https://medium.com/@mrbobbytables/kubernetes-day-2-operations-authn-authz-with-oidc-and-a-little-help-from-keycloak-de4ea1bdbbe&lt;/a&gt;&lt;/p&gt;
-
-&lt;p&gt;Kubernetes docs on configuring OIDC &lt;a href=&quot;https://kubernetes.io/docs/reference/access-authn-authz/authentication/#configuring-the-api-server&quot;&gt;https://kubernetes.io/docs/reference/access-authn-authz/authentication/#configuring-the-api-server&lt;/a&gt;&lt;/p&gt;
-
-&lt;p&gt;Kube OIDC Proxy, tool for allowing OIDC configuration on managed clusters that don&amp;#39;t allow it by default, e.g. EKS, AWS etc; &lt;a href=&quot;https://github.com/jetstack/kube-oidc-proxy&quot;&gt;https://github.com/jetstack/kube-oidc-proxy&lt;/a&gt;&lt;/p&gt;
-
-&lt;p&gt;Loads of great content about keycloak &lt;a href=&quot;https://github.com/thomasdarimont/awesome-keycloak&quot;&gt;https://github.com/thomasdarimont/awesome-keycloak&lt;/a&gt;&lt;/p&gt;
-
-&lt;p&gt;Web application for generating kubeconfig files when working with OIDC &lt;a href=&quot;https://github.com/heptiolabs/gangway&quot;&gt;https://github.com/heptiolabs/gangway&lt;/a&gt;&lt;/p&gt;
-
-&lt;p&gt;AWS article on the use of &lt;code&gt;kube-oidc-proxy&lt;/code&gt; &lt;a href=&quot;https://aws.amazon.com/blogs/opensource/consistent-oidc-authentication-across-multiple-eks-clusters-using-kube-oidc-proxy/&quot;&gt;https://aws.amazon.com/blogs/opensource/consistent-oidc-authentication-across-multiple-eks-clusters-using-kube-oidc-proxy/&lt;/a&gt;&lt;/p&gt;
-
-&lt;p&gt;Tool for logging into kubectl via OIDC; &lt;a href=&quot;https://github.com/int128/kubelogin/blob/master/docs/setup.md&quot;&gt;https://github.com/int128/kubelogin/blob/master/docs/setup.md&lt;/a&gt;&lt;/p&gt;
-
-&lt;p&gt;More on debugging OIDC login; &lt;a href=&quot;https://github.com/int128/kubelogin/issues/156&quot;&gt;https://github.com/int128/kubelogin/issues/156&lt;/a&gt;&lt;/p&gt;
-
-&lt;p&gt;More on different kubelogin flows, e.g. browser vs password &lt;a href=&quot;https://github.com/int128/kubelogin/blob/master/docs/usage.md&quot;&gt;https://github.com/int128/kubelogin/blob/master/docs/usage.md&lt;/a&gt;&lt;/p&gt;
-
-&lt;p&gt;Grafana OIDC info: &lt;a href=&quot;https://grafana.com/docs/grafana/latest/auth/generic-oauth/&quot;&gt;https://grafana.com/docs/grafana/latest/auth/generic-oauth/&lt;/a&gt;&lt;/p&gt;
-
-&lt;p&gt;The series:&lt;/p&gt;
-
-&lt;p&gt;{% include kubernetes-sso/contents.html active=&amp;quot;links&amp;quot; %}&lt;/p&gt;
-</content>
-<summary>While creating the comprehensive guide to Kubernetes SSO, I leant heavily on many great pieces of existing content, a lot of them are included here.</summary>
 </entry>
 </feed>
