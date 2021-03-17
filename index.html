@@ -56,6 +56,45 @@
 
     <article class="post">
         <header class="post-header">
+            <span class="post-meta"><time datetime="16 Mar 2021">16 Mar 2021</time></span>
+            <h2 class="post-title"><a href="/capistrano-puma-systemd-permission-denied-@rb_io_repopen">Capistrano & Puma with Systemd; Permission denied @ rb_io_reopen</a></h2>
+
+        </header>
+        <section class="post-excerpt">
+            <p><p>When using the capistrano puma gem with systemd, we may get the error:</p>
+<div class="highlight"><pre><code class="language-text" data-lang="text"><span></span>Permission denied @ rb_io_reopen - /home/deploy/LOG_FILE_PATH/shared/log/puma_access.log (Errno::EACCES)
+</code></pre></div>
+<p>This may be caused by doubling up on the puma app servers logging.</p>
+
+<p>Typically our systemd unit will contain something like:</p>
+<div class="highlight"><pre><code class="language-text" data-lang="text"><span></span>StandardOutput=append:/home/deploy/LOG_FILE_PATH/shared/log/puma_access.log
+</code></pre></div>
+<p>Which means that any data written to standard output will be appended to the log file specified by systemd.</p>
+
+<p>If we&#39;re getting the above error, it&#39;s also likely that our <code>puma.rb</code> configuration file contains something like:</p>
+<div class="highlight"><pre><code class="language-text" data-lang="text"><span></span>stdout_redirect &#39;/home/deploy/LOG_FILE_PATH/shared/log/puma_access.log&#39;, true
+</code></pre></div>
+<p>Which tells puma itself to write to a log file instead of to stdout.</p>
+
+<p>This doubling up leads to the following:</p>
+
+<ul>
+<li>systemd creates the log file as the root user</li>
+<li>puma which we will generally have running as a different user then tries to write to this same file, but it doesn&#39;t have permission because it was created by root</li>
+</ul>
+
+<p>The solution to this is simple, we can complete remove this line from <code>puma.rb</code>:</p>
+<div class="highlight"><pre><code class="language-text" data-lang="text"><span></span>stdout_redirect &#39;/home/deploy/LOG_FILE_PATH/shared/log/puma_access.log&#39;, true
+</code></pre></div>
+<p>Since the redirection of stdout is already being handled by systemd.</p>
+</p>
+        </section>
+    </article>
+
+    
+
+    <article class="post">
+        <header class="post-header">
             <span class="post-meta"><time datetime="14 Mar 2021">14 Mar 2021</time></span>
             <h2 class="post-title"><a href="/capistrano-puma-is-not-active-cannot-reload">Capistrano & Puma; service puma is not active, cannot reload</a></h2>
 
@@ -418,24 +457,6 @@ WantedBy=&lt;%=(fetch(:puma_systemctl_user) == :system) ? &quot;multi-user.targe
             <p><p>SSH agent forwarding is kind of like magic. Say you&#39;re using VSCode remote development to develop on a remote VM and you want to pull from a private repository. By default you might either generate a new keypair on the remote machine and add them to Github. Or you might copy your existing private key to the remote development machine. The former is fiddly and the latter raises some security concerns. With SSH Agent Forwarding you can allow the remote machine to authenticate requests using the keys on your local machine, without the keys ever leaving your local machine.</p>
 
 <p>One hiccup with this is that if you&#39;re a tmux user, you&#39;ll find that this works initially but then stops working in subsequent sessions. This post offers a simple solution to this.</p>
-</p>
-        </section>
-    </article>
-
-    
-
-    <article class="post">
-        <header class="post-header">
-            <span class="post-meta"><time datetime="01 Jan 2021">01 Jan 2021</time></span>
-            <h2 class="post-title"><a href="/2021/01/macos-setup-with-ansible/">Automating MacOS Development setup with Ansible</a></h2>
-
-        </header>
-        <section class="post-excerpt">
-            <p><p>Manual repetitive tasks are my nemesis and setting up a new Macbook from scratch is a prime example of this. Using Ansible we can completely automate this process. This is valuable both for individual efficiency and for facilitating standardised &quot;team setups&quot; so that new joiners avoid spending their first days googling obscure node version errors.</p>
-
-<p><a href="https://www.ansible.com">Ansible</a> is a tool most commonly associated with the setup of servers and infrastructure. But more broadly it&#39;s an excellent tool for automating the setup of any computer, including laptops and workstations. Of all the configuration management tools out there it&#39;s by far the easiest one to use - requiring no devops background at all - and has an amazing community supporting it.</p>
-
-<p>This posts outlines the setup I&#39;ve evolved over the previous few years which means setting up a new Macbook pro for fairly broad development (Rails, Javascript, Elixir, Python, Android &amp; iOS) now takes just a couple of commands. This includes loading all my shell customisations and GUI apps like Chrome, Office, Virtualbox etc.</p>
 </p>
         </section>
     </article>

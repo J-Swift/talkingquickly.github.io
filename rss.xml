@@ -3,13 +3,48 @@
 <generator uri="http://jekyllrb.com" version="3.7.2">Jekyll</generator>
 <link href="https://www.talkingquickly.co.uk/rss.xml" rel="self" type="application/atom+xml" />
 <link href="https://www.talkingquickly.co.uk/" rel="alternate" type="text/html" />
-<updated>2021-03-15T03:17:06+00:00</updated>
+<updated>2021-03-17T13:07:32+00:00</updated>
 <id>https://www.talkingquickly.co.uk/</id>
 <title>talkingquickly</title>
 <subtitle>kubernetes, rails, stress free deployment and small steps taken quickly</subtitle>
 <author>
 <name>Ben Dixon</name>
 </author>
+<entry>
+<title>Capistrano &amp;amp; Puma with Systemd; Permission denied @ rbioreopen</title>
+<link href="https://www.talkingquickly.co.uk/capistrano-puma-systemd-permission-denied-@rb_io_repopen" rel="alternate" type="text/html" title="Capistrano &amp; Puma with Systemd; Permission denied @ rb_io_reopen" />
+<published>2021-03-16T15:40:00+00:00</published>
+<updated>2021-03-16T15:40:00+00:00</updated>
+<id>https://www.talkingquickly.co.uk/capistrano-puma-permission-denied-rb_io_reopen</id>
+<content type="html" xml:base="https://www.talkingquickly.co.uk/capistrano-puma-systemd-permission-denied-@rb_io_repopen">&lt;p&gt;When using the capistrano puma gem with systemd, we may get the error:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;Permission denied @ rb_io_reopen - /home/deploy/LOG_FILE_PATH/shared/log/puma_access.log (Errno::EACCES)
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;This may be caused by doubling up on the puma app servers logging.&lt;/p&gt;
+
+&lt;p&gt;Typically our systemd unit will contain something like:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;StandardOutput=append:/home/deploy/LOG_FILE_PATH/shared/log/puma_access.log
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;Which means that any data written to standard output will be appended to the log file specified by systemd.&lt;/p&gt;
+
+&lt;p&gt;If we&amp;#39;re getting the above error, it&amp;#39;s also likely that our &lt;code&gt;puma.rb&lt;/code&gt; configuration file contains something like:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;stdout_redirect &amp;#39;/home/deploy/LOG_FILE_PATH/shared/log/puma_access.log&amp;#39;, true
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;Which tells puma itself to write to a log file instead of to stdout.&lt;/p&gt;
+
+&lt;p&gt;This doubling up leads to the following:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;systemd creates the log file as the root user&lt;/li&gt;
+&lt;li&gt;puma which we will generally have running as a different user then tries to write to this same file, but it doesn&amp;#39;t have permission because it was created by root&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;The solution to this is simple, we can complete remove this line from &lt;code&gt;puma.rb&lt;/code&gt;:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;stdout_redirect &amp;#39;/home/deploy/LOG_FILE_PATH/shared/log/puma_access.log&amp;#39;, true
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;Since the redirection of stdout is already being handled by systemd.&lt;/p&gt;
+</content>
+<summary>When using the capistrano puma gem with systemd, we may get the error:Permission denied @ rb_io_reopen - /home/deploy/LOG_FILE_PATH/shared/log/puma_access.log (Errno::EACCES)This may be caused by doubling up on the puma app servers logging.Typically our systemd unit will contain something like:StandardOutput=append:/home/deploy/LOG_FILE_PATH/shared/log/puma_access.logWhich means that any data written to standard output will be appended to the log file specified by systemd.If we&amp;#39;re getting the above error, it&amp;#39;s also likely that our puma.rb configuration file contains something like:stdout_redirect &amp;#39;/home/deploy/LOG_FILE_PATH/shared/log/puma_access.log&amp;#39;, trueWhich tells puma itself to write to a log file instead of to stdout.This doubling up leads to the following:systemd creates the log file as the root userpuma which we will generally have running as a different user then tries to write to this same file, but it doesn&amp;#39;t have permission because it was created by rootThe solution to this is simple, we can complete remove this line from puma.rb:stdout_redirect &amp;#39;/home/deploy/LOG_FILE_PATH/shared/log/puma_access.log&amp;#39;, trueSince the redirection of stdout is already being handled by systemd.</summary>
+</entry>
 <entry>
 <title>Capistrano &amp;amp; Puma; service puma is not active, cannot reload</title>
 <link href="https://www.talkingquickly.co.uk/capistrano-puma-is-not-active-cannot-reload" rel="alternate" type="text/html" title="Capistrano &amp; Puma; service puma is not active, cannot reload" />
@@ -1170,124 +1205,5 @@ member: uid=talkingquickly,ou=People,dc=k4stest4,dc=talkingquickly,dc=co,dc=uk
 &lt;p&gt;{% include kubernetes-sso/contents.html active=&amp;quot;keycloak_openldap&amp;quot; %}&lt;/p&gt;
 </content>
 <summary>In this post we&amp;#39;ll cover how - having installed Keycloak and OpenLDAP separately on Kubernetes - to link the two together so that Keycloak uses OpenLDAP as it&amp;#39;s primary store for user data.This post is part of a series on single sign on for Kubernetes.</summary>
-</entry>
-<entry>
-<title>Installing OpenLDAP on Kubernetes with Helm</title>
-<link href="https://www.talkingquickly.co.uk/installing-openldap-kubernetes-helm" rel="alternate" type="text/html" title="Installing OpenLDAP on Kubernetes with Helm" />
-<published>2021-02-01T15:40:00+00:00</published>
-<updated>2021-02-01T15:40:00+00:00</updated>
-<id>https://www.talkingquickly.co.uk/installing-openldap-on-kubernetes</id>
-<content type="html" xml:base="https://www.talkingquickly.co.uk/installing-openldap-kubernetes-helm">&lt;p&gt;In this post we cover how to install OpenLDAP on Kubernetes and how to test that it is working using the command line.&lt;/p&gt;
-
-&lt;p&gt;LDAP while an older - and in some ways more challenging to work with - approach to SSO than something like OIDC, is still the de-facto standard.&lt;/p&gt;
-
-&lt;p&gt;There are many popular applications which don&amp;#39;t support OIDC but do support LDAP. This is likely to be the case for many years to come so for now, any robust SSO solution is likely to need to support LDAP.&lt;/p&gt;
-
-&lt;p&gt;This post is part of a series on single sign on for Kubernetes&lt;/p&gt;
-
-&lt;!--more--&gt;
-
-&lt;p&gt;{% include kubernetes-sso/contents.html active=&amp;quot;openldap&amp;quot; %}&lt;/p&gt;
-
-&lt;p&gt;{% include kubernetes-sso/pre-reqs.html %}&lt;/p&gt;
-
-&lt;h2&gt;Installing OpenLDAP&lt;/h2&gt;
-
-&lt;p&gt;The Helm chart for OpenLDAP was deprecated as part of the deprecation of the &lt;code&gt;stable&lt;/code&gt; chart repository. So while we await a replacement to appear, the most recent version is mirrored in the repo for this tutorial.&lt;/p&gt;
-
-&lt;p&gt;An example helm values file is abailable in &lt;code&gt;openldap/values-openldap.yml&lt;/code&gt; and we&amp;#39;ll want to customise the following sections:&lt;/p&gt;
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-yaml&quot; data-lang=&quot;yaml&quot;&gt;&lt;span&gt;&lt;/span&gt;&lt;span class=&quot;c1&quot;&gt;# Default configuration for openldap as environment variables. These get injected directly in the container.&lt;/span&gt;
-&lt;span class=&quot;c1&quot;&gt;# Use the env variables from https://github.com/osixia/docker-openldap#beginner-guide&lt;/span&gt;
-&lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;env&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt;
-  &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;LDAP_ORGANISATION&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;Talking&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s&quot;&gt;Quickly&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s&quot;&gt;Demo&amp;quot;&lt;/span&gt;
-  &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;LDAP_DOMAIN&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;ssotest.staging.talkingquickly.co.uk&amp;quot;&lt;/span&gt;
-  &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;LDAP_BACKEND&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;hdb&amp;quot;&lt;/span&gt;
-  &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;LDAP_TLS&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;true&amp;quot;&lt;/span&gt;
-  &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;LDAP_TLS_ENFORCE&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;false&amp;quot;&lt;/span&gt;
-  &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;LDAP_REMOVE_CONFIG_AFTER_SETUP&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;true&amp;quot;&lt;/span&gt;
-  &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;LDAP_READONLY_USER&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;true&amp;quot;&lt;/span&gt;
-  &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;LDAP_READONLY_USER_USERNAME&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;readonly&lt;/span&gt;
-  &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;LDAP_READONLY_USER_MASSWORD&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;password&lt;/span&gt;
-
-&lt;span class=&quot;c1&quot;&gt;# Default Passwords to use, stored as a secret. If unset, passwords are auto-generated.&lt;/span&gt;
-&lt;span class=&quot;c1&quot;&gt;# You can override these at install time with&lt;/span&gt;
-&lt;span class=&quot;c1&quot;&gt;# helm install openldap --set openldap.adminPassword=&amp;lt;passwd&amp;gt;,openldap.configPassword=&amp;lt;passwd&amp;gt;&lt;/span&gt;
-&lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;adminPassword&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;admin&lt;/span&gt;
-&lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;configPassword&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;9h8sdfg9sdgfjsdfg8sdgsdfjgklsdfg8sdgfhj&lt;/span&gt;
-
-&lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;customLdifFiles&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt;
-  &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;initial-ous.ldif&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;p p-Indicator&quot;&gt;|-&lt;/span&gt;
-    &lt;span class=&quot;no&quot;&gt;dn: ou=People,dc=ssotest,dc=staging,dc=talkingquickly,dc=co,dc=uk&lt;/span&gt;
-    &lt;span class=&quot;no&quot;&gt;objectClass: organizationalUnit&lt;/span&gt;
-    &lt;span class=&quot;no&quot;&gt;ou: People&lt;/span&gt;
-
-    &lt;span class=&quot;no&quot;&gt;dn: ou=Group,dc=ssotest,dc=staging,dc=talkingquickly,dc=co,dc=uk&lt;/span&gt;
-    &lt;span class=&quot;no&quot;&gt;objectClass: organizationalUnit&lt;/span&gt;
-    &lt;span class=&quot;no&quot;&gt;ou: Group&lt;/span&gt;
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;p&gt;In this case &lt;code&gt;dc=ssotest,dc=staging,dc=talkingquickly,dc=co,dc=uk&lt;/code&gt; is the base domain I&amp;#39;m using for my test Kubernetes cluster. For the purposes of setting up our LDAP server, this is just an internal identifier, so does not need to map to any sort of DNS.&lt;/p&gt;
-
-&lt;p&gt;The &lt;code&gt;customLdifFiles&lt;/code&gt; section is being used to pre-seed the LDAP database. In this case with two &lt;code&gt;organizationalUnit&lt;/code&gt;&amp;#39;s, one of type &lt;code&gt;People&lt;/code&gt; which will be used to store individual users and another with type &lt;code&gt;Group&lt;/code&gt; will be used to store Groups. &lt;code&gt;OU&lt;/code&gt;s can be though of simplistically as analogous to folders in a traditional file system, &lt;a href=&quot;ttps://www.theurbanpenguin.com/openldap-ous/&quot;&gt;this article on ous&lt;/a&gt; is well worth a read to get a better understanding for how they fit together.&lt;/p&gt;
-
-&lt;p&gt;We can now install OpenLDAP with the following command:&lt;/p&gt;
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span&gt;&lt;/span&gt;helm upgrade --install openldap ./charts/openldap --values openldap/values-openldap.yml
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;p&gt;Once it installs, you should see some output confirming success and some examples of how to access the server.&lt;/p&gt;
-
-&lt;p&gt;Importantly this will include the commands for retrieving the config and administration passwords, e.g:&lt;/p&gt;
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;kubectl get secret --namespace identity openldap -o jsonpath=&amp;quot;{.data.LDAP_ADMIN_PASSWORD}&amp;quot; | base64 --decode; echo
-kubectl get secret --namespace identity openldap -o jsonpath=&amp;quot;{.data.LDAP_CONFIG_PASSWORD}&amp;quot; | base64 --decode; echo
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;h2&gt;Using The OpenLDAP CLI&lt;/h2&gt;
-
-&lt;p&gt;Although we&amp;#39;ll primarily manage our LDAP directory through KeyCloak, it&amp;#39;s useful to have a basic familiarity with the CLI for testing purposes. &lt;a href=&quot;https://www.splunk.com/en_us/blog/tips-and-tricks/ldapsearch-is-your-friend.html&quot;&gt;Splunk has a great introduction to the CLI here&lt;/a&gt;.&lt;/p&gt;
-
-&lt;p&gt;We&amp;#39;ll start by using &lt;code&gt;kubectl proxy&lt;/code&gt; to expose our LDAP server locally:&lt;/p&gt;
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span&gt;&lt;/span&gt;kubectl port-forward --namespace identity &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
-      &lt;span class=&quot;k&quot;&gt;$(&lt;/span&gt;kubectl get pods -n identity --selector&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;release=openldap&amp;#39;&lt;/span&gt; -o &lt;span class=&quot;nv&quot;&gt;jsonpath&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;{.items[0].metadata.name}&amp;#39;&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
-      &lt;span class=&quot;m&quot;&gt;3890&lt;/span&gt;:389
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;p&gt;In a separate terminal execute (most unix systems, inc OSX, come with ldapsearch installed, if yours does not, you&amp;#39;ll need to download it, for debian based distributions you&amp;#39;ll need &lt;code&gt;ldap-utils&lt;/code&gt;):&lt;/p&gt;
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span&gt;&lt;/span&gt;ldapsearch -x -H ldap://localhost:3890 -b &lt;span class=&quot;nv&quot;&gt;dc&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;ssotest,dc&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;staging,dc&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;talkingquickly,dc&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;co,dc&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;uk -D &lt;span class=&quot;s2&quot;&gt;&amp;quot;cn=admin,dc=ssotest,dc=staging,dc=talkingquickly,dc=co,dc=uk&amp;quot;&lt;/span&gt; -w password
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;p&gt;This return something along the lines of:&lt;/p&gt;
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;objectClass: organization
-o: Talking Quickly&amp;#39;s Demo
-dc: k4stest4
-
-# admin, k4stest4.talkingquickly.co.uk
-dn: cn=admin,dc=k4stest4,dc=talkingquickly,dc=co,dc=uk
-objectClass: simpleSecurityObject
-objectClass: organizationalRole
-cn: admin
-description: LDAP administrator
-userPassword:: e1NTSEF9YjM1a0hLYXVwcDlvcGU5R1N2UE5qcFBLd3FxdUorWFk=
-
-# People, k4stest4.talkingquickly.co.uk
-dn: ou=People,dc=k4stest4,dc=talkingquickly,dc=co,dc=uk
-objectClass: organizationalUnit
-ou: People
-
-# Group, k4stest4.talkingquickly.co.uk
-dn: ou=Group,dc=k4stest4,dc=talkingquickly,dc=co,dc=uk
-objectClass: organizationalUnit
-ou: Group
-
-# search result
-search: 2
-result: 0 Success
-
-# numResponses: 6
-# numEntries: 4
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;p&gt;It&amp;#39;s worth perusing &lt;a href=&quot;https://stackoverflow.com/questions/18756688/what-are-cn-ou-dc-in-an-ldap-search&quot;&gt;this Stack Overflow post&lt;/a&gt; to understand a little more about the &lt;code&gt;dn&lt;/code&gt;, &lt;code&gt;dc&lt;/code&gt; terminology.&lt;/p&gt;
-
-&lt;p&gt;Note that my test domain &lt;code&gt;ssotest.staging.talkingquickly.co.uk&lt;/code&gt; results in a &lt;code&gt;dn&lt;/code&gt; (Distinguished Name) made up of a comma separated list of &lt;code&gt;dc&lt;/code&gt; (Domain Components)  &lt;code&gt;dc=ssotest,dc=staging,dc=talkingquickly,dc=co,dc=uk&lt;/code&gt;. We can also see that our &lt;code&gt;ou&lt;/code&gt;s from the &lt;code&gt;customLdiffFiles&lt;/code&gt; have been created.&lt;/p&gt;
-
-&lt;p&gt;So now we have an LDAP server and have a simple way of checking what&amp;#39;s stored in it. We can now move onto installing Keycloak.&lt;/p&gt;
-
-&lt;p&gt;{% include kubernetes-sso/contents.html active=&amp;quot;openldap&amp;quot; %}&lt;/p&gt;
-</content>
-<summary>In this post we cover how to install OpenLDAP on Kubernetes and how to test that it is working using the command line.LDAP while an older - and in some ways more challenging to work with - approach to SSO than something like OIDC, is still the de-facto standard.There are many popular applications which don&amp;#39;t support OIDC but do support LDAP. This is likely to be the case for many years to come so for now, any robust SSO solution is likely to need to support LDAP.This post is part of a series on single sign on for Kubernetes</summary>
 </entry>
 </feed>
