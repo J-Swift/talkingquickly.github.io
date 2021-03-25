@@ -56,6 +56,22 @@
 
     <article class="post">
         <header class="post-header">
+            <span class="post-meta"><time datetime="04 Jan 2021">04 Jan 2021</time></span>
+            <h2 class="post-title"><a href="/2021/01/tmux-ssh-agent-forwarding-vs-code/">tmux, docker and SSH agent forwarding when developing remotely with VSCode</a></h2>
+
+        </header>
+        <section class="post-excerpt">
+            <p><p>SSH agent forwarding is kind of like magic. Say you&#39;re using VSCode remote development to develop on a remote VM and you want to pull from a private repository. By default you might either generate a new keypair on the remote machine and add them to Github. Or you might copy your existing private key to the remote development machine. The former is fiddly and the latter raises some security concerns. With SSH Agent Forwarding you can allow the remote machine to authenticate requests using the keys on your local machine, without the keys ever leaving your local machine.</p>
+
+<p>One hiccup with this is that if you&#39;re a tmux user, you&#39;ll find that this works initially but then stops working in subsequent sessions. This post offers a simple solution to this.</p>
+</p>
+        </section>
+    </article>
+
+    
+
+    <article class="post">
+        <header class="post-header">
             <span class="post-meta"><time datetime="01 Jan 2021">01 Jan 2021</time></span>
             <h2 class="post-title"><a href="/2021/01/macos-setup-with-ansible/">Automating MacOS Development setup with Ansible</a></h2>
 
@@ -248,20 +264,6 @@
         </header>
         <section class="post-excerpt">
             <p><p>Onboarding new developers to a Rails projects is still a far harder task than it should be. A big part of this is that setting up a development environment for an app or suite of apps, getting the correct ruby versions, database versions etc running locally, can in many cases take upwards of a day. A combination of Vagrant and Docker can make this a thing of the past.</p>
-</p>
-        </section>
-    </article>
-
-    
-
-    <article class="post">
-        <header class="post-header">
-            <span class="post-meta"><time datetime="12 May 2014">12 May 2014</time></span>
-            <h2 class="post-title"><a href="/2014/05/dnsimple-ssl-certificates-nginx/">DNSimple SSL Certificates and NGinx</a></h2>
-
-        </header>
-        <section class="post-excerpt">
-            <p><p>If you purchase a Geotrust SSL Certificate from DNSimple for your domain, there&#39;s a small amount of setup required to get the certificate in a format you can use with Nginx. This post includes an overview of the process and a simple bash script to automate it.</p>
 </p>
         </section>
     </article>

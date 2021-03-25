@@ -3,13 +3,108 @@
 <generator uri="http://jekyllrb.com" version="3.7.2">Jekyll</generator>
 <link href="https://www.talkingquickly.co.uk/rss.xml" rel="self" type="application/atom+xml" />
 <link href="https://www.talkingquickly.co.uk/" rel="alternate" type="text/html" />
-<updated>2021-03-17T13:07:32+00:00</updated>
+<updated>2021-03-25T02:12:30+00:00</updated>
 <id>https://www.talkingquickly.co.uk/</id>
 <title>talkingquickly</title>
 <subtitle>kubernetes, rails, stress free deployment and small steps taken quickly</subtitle>
 <author>
 <name>Ben Dixon</name>
 </author>
+<entry>
+<title>Managing puma with the systemd user instance and monit</title>
+<link href="https://www.talkingquickly.co.uk/managing-puma-with-systemd-user-instance-and-monit" rel="alternate" type="text/html" title="Managing puma with the systemd user instance and monit" />
+<published>2021-03-23T15:40:00+00:00</published>
+<updated>2021-03-23T15:40:00+00:00</updated>
+<id>https://www.talkingquickly.co.uk/controlling-puma-with-systemd-userspace-and-monit</id>
+<content type="html" xml:base="https://www.talkingquickly.co.uk/managing-puma-with-systemd-user-instance-and-monit">&lt;p&gt;Many guides to deploying Rails with Capistrano will use systemd to have it auto-started when the system boots. This is often done using the system instance of systemd which by default can only be controlled by root.&lt;/p&gt;
+
+&lt;p&gt;The typical workaround for this is either to grant our Capistrano deployment user passwordless sudo access or to grant them passwordless sudo access to just the commands required to restart the rails (and potentially sidekiq) systemd services.&lt;/p&gt;
+
+&lt;p&gt;This can be avoided by using the systemd user instance, which allows persistent services to be managed as a non-root user. This is compatible with the default systemd configuration in Ubuntu 20.04.&lt;/p&gt;
+
+&lt;!--more--&gt;
+
+&lt;p&gt;There are multiple locations systemd user instance units can be located, there&amp;#39;s more &lt;a href=&quot;https://wiki.archlinux.org/index.php/systemd/User&quot;&gt;here&lt;/a&gt;, in this case we&amp;#39;ll be using: &lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;~/.config/systemd/user/
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;In here we&amp;#39;ll put a systemd unit file similar to the following:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;[Unit]
+Description=Puma HTTP Server for RAILS APP NAME (ENVIRONMENT)
+After=network.target
+
+[Service]
+Type=simple
+
+WorkingDirectory=/home/deploy/apps/APP_NAME/current
+ExecStart=/usr/local/rbenv/bin/rbenv exec bundle exec puma -C /home/deploy/apps/APP_NAME/shared/puma.rb
+ExecReload=/bin/kill -USR1 $MAINPID
+ExecStop=/bin/kill -TSTP $MAINPID
+StandardOutput=append:/home/deploy/apps/APP_NAME/shared/log/puma_access.log
+StandardError=append:/home/deploy/apps/APP_NAME/shared/log/puma_error.log
+
+Environment=RBENV_VERSION=3.0.0
+Environment=RBENV_ROOT=/usr/local/rbenv
+
+Restart=always
+RestartSec=1
+
+SyslogIdentifier=APP_NAME
+
+[Install]
+WantedBy=default.target
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;The &lt;code&gt;capistrano-puma&lt;/code&gt; Gem can auto-generate this file and the &lt;code&gt;capistrano-cookbook&lt;/code&gt; gem provides and overridden version of the template which fixes some rbenv compatibility issues and allows for zero downtime deploys (as well as also generating all other capistrano configuration automatically).&lt;/p&gt;
+
+&lt;p&gt;You can see the most recent Capistrano Cookbooks unit file template - which may be useful as a reference - &lt;a href=&quot;https://github.com/TalkingQuickly/capistrano-cookbook/blob/master/lib/generators/capistrano/reliably_deploying_rails/templates/puma.service.erb&quot;&gt;here&lt;/a&gt; which is a tweaked version of the version in &lt;code&gt;capistrano-puma&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;Note a few things about this unit file:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;There is no &lt;code&gt;User&lt;/code&gt; directive, user services will run as the user in question, including a &lt;code&gt;User&lt;/code&gt; directive may lead to non-descriptive &lt;code&gt;service start request repeated too quickly, refusing to start&lt;/code&gt; type errors&lt;/li&gt;
+&lt;li&gt;Our Environment variables are not included in the &lt;code&gt;ExecStart&lt;/code&gt; command, they&amp;#39;re in separate &lt;code&gt;Environment&lt;/code&gt; lines, &lt;a href=&quot;http://www.talkingquickly.co.uk/capistrano-puma-neither-valid-executable-nor-absolute-path&quot;&gt;this is explained here&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;WantedBy&lt;/code&gt; is set to &lt;code&gt;default.target&lt;/code&gt; which is the correct value for user services if we want them to be started at boot&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;In order for our service to be started at boot, we then need to enable this service with:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;systemctl --user enable UNIT_FILE_NAME
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;Note that this is different to starting the unit. We can start a unit immediately with &lt;code&gt;systemctl --user start UNIT_FILE_NAME&lt;/code&gt; but this does not set the unit to be started on boot, so we must enable it as well. This is taken care of automatically if you&amp;#39;re using the &lt;code&gt;deploy:setup_config&lt;/code&gt; task from &lt;code&gt;capistrano-cookbook&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;Our next challenge is that by default, user instance systemd services are only started when the user starts a session and will continue to run only while the user in question has an active session.&lt;/p&gt;
+
+&lt;p&gt;To resolve this we must enable &lt;a href=&quot;http://manpages.ubuntu.com/manpages/xenial/man1/loginctl.1.html&quot;&gt;lingering&lt;/a&gt;, lingering ensures that a manager for the user in question in spawned on boot so that the user can manage long run services.&lt;/p&gt;
+
+&lt;p&gt;We can enable lingering with:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;loginctl enable-linger USERNAME
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;Where USERNAME is the capistrano deployment user. This is taken care of automatically if you&amp;#39;re using the &lt;code&gt;deploy:setup_config&lt;/code&gt; task from &lt;code&gt;capistrano-cookbook&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;Finally we may want to monitor our systemd service with Monit. While there is crossover between systemd and monit, both will monitor that a process is running and start it if not.&lt;/p&gt;
+
+&lt;p&gt;Monit however adds some additional capabilities on top of systemd, it can allow for significantly more complex checks such as making sure that our service is responding on a given port and even check the contents of certain healthcheck responses and issuing restarts if these aren&amp;#39;t matched.&lt;/p&gt;
+
+&lt;p&gt;Monit however runs as root and we need it to control a systemd user service.&lt;/p&gt;
+
+&lt;p&gt;We may initially think we can use something like:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;start program = &amp;quot;/usr/bin/systemctl --user start SYSTEMD_SERVICE_UNIT_FILE&amp;quot; as uid &amp;quot;deploy&amp;quot; and gid &amp;quot;deploy&amp;quot;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;As our start program where &lt;code&gt;deploy&lt;/code&gt; is our Capistrano user. We might expect this to be equivalent to running &lt;code&gt;systemctl --user start&lt;/code&gt; as the deploy user in a shell. While the command will be run as that user, due to some missing environment variables, we&amp;#39;re likely to get an error along the lines of:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;Failed to get D-bus connection: no such file or directory
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;This is due to &lt;code&gt;XDG_RUNTIME_DIR&lt;/code&gt; &lt;a href=&quot;https://serverfault.com/questions/936985/cannot-use-systemctl-user-due-to-failed-to-get-d-bus-connection-permission&quot;&gt;not being set correctly&lt;/a&gt; when users are switched in this way. The same issue can happen if we try and use &lt;code&gt;su&lt;/code&gt; in Capistrano to change users before executing a &lt;code&gt;systemctl --user&lt;/code&gt; command.&lt;/p&gt;
+
+&lt;p&gt;We can resolve is by modifying our start command to set this environment variable manually. So a simple monit definition might look like this:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;check process APP_NAME
+  with pidfile &amp;quot;/home/deploy/apps/APP_NAME/shared/tmp/pids/puma.pid&amp;quot;
+  start program = &amp;quot;/bin/bash -c &amp;#39;XDG_RUNTIME_DIR=/run/user/$(id -u) /usr/bin/systemctl start --user SYSTEMD_SERVICE_UNIT_FILE&amp;#39;&amp;quot; as uid &amp;quot;deploy&amp;quot; and gid &amp;quot;deploy&amp;quot;
+  stop program = &amp;quot;/bin/bash -c &amp;#39;XDG_RUNTIME_DIR=/run/user/$(id -u) /usr/bin/systemctl stop --user SYSTEMD_SERVICE_UNIT_FILE&amp;#39;&amp;quot; as uid &amp;quot;deploy&amp;quot; and gid &amp;quot;deploy&amp;quot;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;You can see the most recent version of &lt;code&gt;capistrano cookbooks&lt;/code&gt; monit definition &lt;a href=&quot;https://github.com/TalkingQuickly/capistrano-cookbook/blob/master/lib/generators/capistrano/reliably_deploying_rails/templates/puma_monit.conf.erb&quot;&gt;here&lt;/a&gt; which may be useful as a reference.&lt;/p&gt;
+
+&lt;p&gt;With all of this completed, we should now have puma being managed by a systemd service, which will auto start at boot, and is monitored with monit.&lt;/p&gt;
+</content>
+<summary>Many guides to deploying Rails with Capistrano will use systemd to have it auto-started when the system boots. This is often done using the system instance of systemd which by default can only be controlled by root.The typical workaround for this is either to grant our Capistrano deployment user passwordless sudo access or to grant them passwordless sudo access to just the commands required to restart the rails (and potentially sidekiq) systemd services.This can be avoided by using the systemd user instance, which allows persistent services to be managed as a non-root user. This is compatible with the default systemd configuration in Ubuntu 20.04.</summary>
+</entry>
 <entry>
 <title>Capistrano &amp;amp; Puma with Systemd; Permission denied @ rbioreopen</title>
 <link href="https://www.talkingquickly.co.uk/capistrano-puma-systemd-permission-denied-@rb_io_repopen" rel="alternate" type="text/html" title="Capistrano &amp; Puma with Systemd; Permission denied @ rb_io_reopen" />
@@ -1100,110 +1195,5 @@ docker push registry-keycloak.ssotest.staging.talkingquickly.co.uk/SOME_NAME
 &lt;p&gt;{% include kubernetes-sso/contents.html active=&amp;quot;gitea&amp;quot; %}&lt;/p&gt;
 </content>
 <summary>Gitea is a lightweight open source git service. As an aside, Gitea - especially when combined with Drone CI - is one of my favourite pieces of open source software!It&amp;#39;s minimal footprint and easy to use interface make it perfect for running on clusters to facilitate git push deploys and CI.Here we&amp;#39;ll configure OpenLDAP for centralised user management and single sign on. We&amp;#39;ll optionally configure OpenID Connect but with several caveats on its usage.This post is part of a series on single sign on for Kubernetes.</summary>
-</entry>
-<entry>
-<title>Keycloak and OpenLDAP on Kubernetes</title>
-<link href="https://www.talkingquickly.co.uk/keycloak-and-openldap-on-kubernetes" rel="alternate" type="text/html" title="Keycloak and OpenLDAP on Kubernetes" />
-<published>2021-02-05T15:40:00+00:00</published>
-<updated>2021-02-05T15:40:00+00:00</updated>
-<id>https://www.talkingquickly.co.uk/keycloak-with-openldap-kubernetes</id>
-<content type="html" xml:base="https://www.talkingquickly.co.uk/keycloak-and-openldap-on-kubernetes">&lt;p&gt;In this post we&amp;#39;ll cover how - having installed Keycloak and OpenLDAP separately on Kubernetes - to link the two together so that Keycloak uses OpenLDAP as it&amp;#39;s primary store for user data.&lt;/p&gt;
-
-&lt;p&gt;This post is part of a series on single sign on for Kubernetes.&lt;/p&gt;
-
-&lt;!--more--&gt;
-
-&lt;p&gt;{% include kubernetes-sso/contents.html active=&amp;quot;keycloak_openldap&amp;quot; %}&lt;/p&gt;
-
-&lt;p&gt;{% include kubernetes-sso/pre-reqs.html %}&lt;/p&gt;
-
-&lt;p&gt;This post assumes you&amp;#39;ve already completed the &amp;quot;Intalling OpenLDAP&amp;quot; and &amp;quot;Installing Keycloak&amp;quot; sections.&lt;/p&gt;
-
-&lt;h2&gt;Configuring OpenLDAP in Keycloak&lt;/h2&gt;
-
-&lt;p&gt;After logging into the Keycloak administrative console with our admin user, head to User Federation and select &lt;code&gt;ldap&lt;/code&gt; from the &amp;quot;Add Provider` dropdown. Then choose the following options:&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Edit Mode&lt;/strong&gt;: &lt;code&gt;Writable&lt;/code&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Sync Registrations&lt;/strong&gt;: &lt;code&gt;On&lt;/code&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Vendor&lt;/strong&gt;: &lt;code&gt;Other&lt;/code&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Connection URL&lt;/strong&gt;: &lt;code&gt;ldap://openldap.identity.svc.cluster.local&lt;/code&gt;; you&amp;#39;ll need to change &lt;code&gt;identity&lt;/code&gt; to match the namespace you&amp;#39;re working in)&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Users DN&lt;/strong&gt;: &lt;code&gt;ou=People,dc=ssotest,dc=staging,dc=talkingquickly,dc=co,dc=uk&lt;/code&gt;; you&amp;#39;ll need to change the &lt;code&gt;dc&lt;/code&gt; entries to match your base dn. Note that here we&amp;#39;re telling Keycloak that users are stored in our &lt;code&gt;People&lt;/code&gt; ou, created from the &lt;code&gt;customLdiffFiles&lt;/code&gt;.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Authentication Type&lt;/strong&gt;: &lt;code&gt;simple&lt;/code&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Bind DN&lt;/strong&gt;: &lt;code&gt;cn=admin,dc=ssotest,dc=staging,dc=talkingquickly,dc=co,dc=uk&lt;/code&gt; again, updating the &lt;code&gt;dc&lt;/code&gt; entries to match your base dn&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Bind Credentials&lt;/strong&gt;: Set this to the admin password we used for &lt;code&gt;ldapsearch&lt;/code&gt; earlier&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;p&gt;Once we&amp;#39;ve entered all of these details, we can use the &amp;quot;Test connection&amp;quot; and &amp;quot;Test authentication&amp;quot; buttons to make sure that everything works. Assuming it does, we can select &amp;quot;Save&amp;quot; to complete the addition of a User Federation provider.&lt;/p&gt;
-
-&lt;p&gt;At this point we&amp;#39;ve configured Keycloak so that it knows how to synchronise user with OpenLDAP, but currently it has no concept of groups. With more than a handful of users, we&amp;#39;ll want to be able to allocate people to groups and determine their access to systems according to group membership. &lt;/p&gt;
-
-&lt;p&gt;For this we need to go back to the &amp;quot;User Federation&amp;quot; entry on the left menu, choose our ldap entry and select the &amp;quot;Mappers&amp;quot; tab.&lt;/p&gt;
-
-&lt;p&gt;We then need to select &amp;quot;Create&amp;quot;, enter &lt;code&gt;group&lt;/code&gt; as the Name for our federation mapper and select &lt;code&gt;group-ldap-mapper&lt;/code&gt; as the &amp;quot;Mapper Type&amp;quot;. Then select the following:&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;LDAP Groups DN&lt;/strong&gt;: &lt;code&gt;ou=Group,dc=ssotest,dc=staging,dc=talkingquickly,dc=co,dc=uk&lt;/code&gt; (updating to match your configuration)&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Group Object Classes&lt;/strong&gt;: &lt;code&gt;groupOfUniqueNames&lt;/code&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Membership LDAP Attribute&lt;/strong&gt;: &lt;code&gt;uniqueMember&lt;/code&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;User Groups Retrieve Strategy&lt;/strong&gt;: &lt;code&gt;LOAD_GROUPS_BY_MEMBER_ATTRIBUTE&lt;/code&gt;&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;p&gt;And choose save. This configuration is slightly different to the default and ensures that the &lt;code&gt;memberOf&lt;/code&gt; attribute works correctly. There&amp;#39;s a long Github issue on it &lt;a href=&quot;https://github.com/osixia/docker-openldap/issues/304&quot;&gt;here&lt;/a&gt;. This is required by some applications to manage access based on groups.&lt;/p&gt;
-
-&lt;p&gt;Note that in order to test that &lt;code&gt;memberOf&lt;/code&gt; is working correctly with &lt;code&gt;ldapsearch&lt;/code&gt;, we&amp;#39;ll need to &lt;a href=&quot;https://docs.oracle.com/cd/E19623-01/820-6169/searching-for-special-entries-and-attributes.html&quot;&gt;include operational attributes&lt;/a&gt; by including &amp;quot;+&amp;quot; as part of our &lt;code&gt;ldapsearch&lt;/code&gt; command e.g:&lt;/p&gt;
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;ldapsearch -x -H ldap://localhost:3890 -b dc=ssotest,dc=staging,dc=talkingquickly,dc=co,dc=uk -D &amp;quot;cn=admin,dc=ssotest,dc=staging,dc=talkingquickly,dc=co,dc=uk&amp;quot; &amp;quot;+&amp;quot; -w password
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;p&gt;To run the commands locally we&amp;#39;ll need to forward the OpenLDAP port to our local machine with:&lt;/p&gt;
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span&gt;&lt;/span&gt;kubectl port-forward --namespace identity &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
-      &lt;span class=&quot;k&quot;&gt;$(&lt;/span&gt;kubectl get pods -n identity --selector&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;release=openldap&amp;#39;&lt;/span&gt; -o &lt;span class=&quot;nv&quot;&gt;jsonpath&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;{.items[0].metadata.name}&amp;#39;&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
-      &lt;span class=&quot;m&quot;&gt;3890&lt;/span&gt;:389
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;h2&gt;Managing users and testing that it works&lt;/h2&gt;
-
-&lt;p&gt;We can now use Keycloak to add a user by going to the &amp;quot;Users&amp;quot; option in the left hand pane and choosing Add user. After populating and saving the new user form, we can use &lt;code&gt;ldapsearch&lt;/code&gt; to check that the user has been created in &lt;code&gt;openldap&lt;/code&gt;. To run the commands locally we&amp;#39;ll need to forward the OpenLDAP port to our local machine with:&lt;/p&gt;
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span&gt;&lt;/span&gt;kubectl port-forward --namespace identity &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
-      &lt;span class=&quot;k&quot;&gt;$(&lt;/span&gt;kubectl get pods -n identity --selector&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;release=openldap&amp;#39;&lt;/span&gt; -o &lt;span class=&quot;nv&quot;&gt;jsonpath&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;{.items[0].metadata.name}&amp;#39;&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
-      &lt;span class=&quot;m&quot;&gt;3890&lt;/span&gt;:389
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;p&gt;We can then execute the &lt;code&gt;ldapsearch&lt;/code&gt; command:&lt;/p&gt;
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;ldapsearch -x -H ldap://localhost:3890 -b dc=ssotest,dc=staging,dc=talkingquickly,dc=co,dc=uk -D &amp;quot;cn=admin,dc=ssotest,dc=staging,dc=talkingquickly,dc=co,dc=uk&amp;quot; &amp;quot;+&amp;quot; -w password
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;p&gt;Replacing &lt;code&gt;password&lt;/code&gt; with the password we chose in &lt;code&gt;values-openldap.yml&lt;/code&gt;.&lt;/p&gt;
-
-&lt;p&gt;Included in the output, we should see something like this:&lt;/p&gt;
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;# talkingquickly, People, ssotest.staging.talkingquickly.co.uk
-dn: uid=talkingquickly1,ou=People,dc=ssotest,dc=staging,dc=talkingquickly,dc=co,dc=uk
-uid: talkingquickly1
-objectClass: inetOrgPerson
-objectClass: organizationalPerson
-mail: ben+1@hillsbede.co.uk
-sn: Dixon
-cn: Ben
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;p&gt;Which shows that our user has been successfully created in OpenLDAP! Now onto groups. If we head over to the &amp;quot;Groups&amp;quot; page in Keycloak and add an &amp;quot;Administrators&amp;quot; group and then re-run our &lt;code&gt;ldapsearch&lt;/code&gt; search command we&amp;#39;ll see that nothing has changed, our group won&amp;#39;t be there.&lt;/p&gt;
-
-&lt;p&gt;If however we then return to the Users page, select or newly created user and head to the Groups tab, we can then add our user to the Administrators group. Note that when viewing the &amp;quot;Users&amp;quot; tab, we&amp;#39;ll sometimes see an empty list and have to click &amp;quot;View all users&amp;quot; to see everyone.&lt;/p&gt;
-
-&lt;p&gt;Having done this, if we re-run our &lt;code&gt;ldapsearch&lt;/code&gt; command, we should see something like the following included in the output:&lt;/p&gt;
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;# Administrators, Group, k4stest4.talkingquickly.co.uk
-dn: cn=Administrators,ou=Group,dc=k4stest4,dc=talkingquickly,dc=co,dc=uk
-objectClass: groupOfNames
-cn: Administrators
-member: cn=empty-membership-placeholder
-member: uid=talkingquickly,ou=People,dc=k4stest4,dc=talkingquickly,dc=co,dc=uk
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;p&gt;This shows that both our &lt;code&gt;Administrators&lt;/code&gt; group has been created and that our user is a part of it.&lt;/p&gt;
-
-&lt;p&gt;If we then look at the entry for our user, assuming we have used the &amp;quot;+&amp;quot; option to enable the display of operational fields, we&amp;#39;ll see that it includes a line something like:&lt;/p&gt;
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;memberOf: cn=Administrators,ou=Group,dc=ssotest,dc=staging,dc=talkingquickly,dc=co,dc=uk
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;p&gt;Which means the &lt;code&gt;memberOf&lt;/code&gt; functionality we configured earlier is working.&lt;/p&gt;
-
-&lt;p&gt;This series of posts won&amp;#39;t explore the use of &lt;code&gt;ldapsearch&lt;/code&gt; much further, but it&amp;#39;s a powerful tool and &lt;a href=&quot;https://docs.oracle.com/cd/E19450-01/820-6169/ldapsearch-examples.html&quot;&gt;this page&lt;/a&gt; is a handy cookbook of how it can be used. &lt;/p&gt;
-
-&lt;p&gt;{% include kubernetes-sso/contents.html active=&amp;quot;keycloak_openldap&amp;quot; %}&lt;/p&gt;
-</content>
-<summary>In this post we&amp;#39;ll cover how - having installed Keycloak and OpenLDAP separately on Kubernetes - to link the two together so that Keycloak uses OpenLDAP as it&amp;#39;s primary store for user data.This post is part of a series on single sign on for Kubernetes.</summary>
 </entry>
 </feed>

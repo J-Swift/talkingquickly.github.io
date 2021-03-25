@@ -56,6 +56,24 @@
 
     <article class="post">
         <header class="post-header">
+            <span class="post-meta"><time datetime="23 Mar 2021">23 Mar 2021</time></span>
+            <h2 class="post-title"><a href="/managing-puma-with-systemd-user-instance-and-monit">Managing puma with the systemd user instance and monit</a></h2>
+
+        </header>
+        <section class="post-excerpt">
+            <p><p>Many guides to deploying Rails with Capistrano will use systemd to have it auto-started when the system boots. This is often done using the system instance of systemd which by default can only be controlled by root.</p>
+
+<p>The typical workaround for this is either to grant our Capistrano deployment user passwordless sudo access or to grant them passwordless sudo access to just the commands required to restart the rails (and potentially sidekiq) systemd services.</p>
+
+<p>This can be avoided by using the systemd user instance, which allows persistent services to be managed as a non-root user. This is compatible with the default systemd configuration in Ubuntu 20.04.</p>
+</p>
+        </section>
+    </article>
+
+    
+
+    <article class="post">
+        <header class="post-header">
             <span class="post-meta"><time datetime="16 Mar 2021">16 Mar 2021</time></span>
             <h2 class="post-title"><a href="/capistrano-puma-systemd-permission-denied-@rb_io_repopen">Capistrano & Puma with Systemd; Permission denied @ rb_io_reopen</a></h2>
 
@@ -441,22 +459,6 @@ WantedBy=&lt;%=(fetch(:puma_systemctl_user) == :system) ? &quot;multi-user.targe
 <p>With this setup I seamlessly switch between fully local development using a Virtualbox VM and a 16 core cloud VM with 64GB of RAM when I need more horsepower. In both environments this provides the level of Docker performance I associate with developing directly on Linux machines.</p>
 
 <p>This is streamlined using an Ansible playbook which automatically sets up Debian VM&#39;s with sensible defaults for development, including a beautiful default ZSH configuration (inc auto-completions) and easy language version management with asdf. This post starts with the practical steps required for this setup, and then goes on to explain what&#39;s being installed and how it works.</p>
-</p>
-        </section>
-    </article>
-
-    
-
-    <article class="post">
-        <header class="post-header">
-            <span class="post-meta"><time datetime="04 Jan 2021">04 Jan 2021</time></span>
-            <h2 class="post-title"><a href="/2021/01/tmux-ssh-agent-forwarding-vs-code/">tmux, docker and SSH agent forwarding when developing remotely with VSCode</a></h2>
-
-        </header>
-        <section class="post-excerpt">
-            <p><p>SSH agent forwarding is kind of like magic. Say you&#39;re using VSCode remote development to develop on a remote VM and you want to pull from a private repository. By default you might either generate a new keypair on the remote machine and add them to Github. Or you might copy your existing private key to the remote development machine. The former is fiddly and the latter raises some security concerns. With SSH Agent Forwarding you can allow the remote machine to authenticate requests using the keys on your local machine, without the keys ever leaving your local machine.</p>
-
-<p>One hiccup with this is that if you&#39;re a tmux user, you&#39;ll find that this works initially but then stops working in subsequent sessions. This post offers a simple solution to this.</p>
 </p>
         </section>
     </article>

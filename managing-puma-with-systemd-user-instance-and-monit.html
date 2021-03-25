@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+
+    <title>Managing puma with the systemd user instance and monit</title>
+    
+        <meta name="description" content="Blog by Ben Dixon, Ruby on Rails Developer, about rails, kubernetes, docker, climbing and startups" />
+    
+
+
+    <meta name="HandheldFriendly" content="True" />
+    <meta name="MobileOptimized" content="320" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="google-site-verification" content="iwXSC2H2VSO9iPyrWjNj3Prlx4zJY-l0EJRGVkFuUHk" />
+
+
+    <link rel="stylesheet" type="text/css" href="/assets/css/screen.css" />
+    <link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=Noto+Serif:400,700,400italic|Open+Sans:700,400" />
+    <!-- This is for syntax highlight -->
+    <link rel="stylesheet" type="text/css" href="/assets/css/syntax.css">
+    <!-- Customisation  -->
+    <link rel="stylesheet" type="text/css" href="/assets/css/main.css" />
+    <link rel="alternate" type="application/rss+xml" title="RSS" href="/rss.xml"/>
+    <link rel="canonical" href="https://www.talkingquickly.co.uk/managing-puma-with-systemd-user-instance-and-monit">
+
+</head>
+<body class="home-template">
+
+
+    <main class="content" role="main">
+
+    <article class="post">
+        <header class="post-header">
+            <a id="blog-logo" href="/"><span class="blog-title">Home</span></a>
+            //
+            <a target="_blank" href='https://leanpub.com/deploying_rails_applications'>Deploying Rails Book</a>
+        </header>
+
+        <span class="post-meta">
+        	
+       	</span>
+
+        <h1 class="post-title">Managing puma with the systemd user instance and monit</h1>
+
+        <section class="post-content">
+            <p>Many guides to deploying Rails with Capistrano will use systemd to have it auto-started when the system boots. This is often done using the system instance of systemd which by default can only be controlled by root.</p>
+
+<p>The typical workaround for this is either to grant our Capistrano deployment user passwordless sudo access or to grant them passwordless sudo access to just the commands required to restart the rails (and potentially sidekiq) systemd services.</p>
+
+<p>This can be avoided by using the systemd user instance, which allows persistent services to be managed as a non-root user. This is compatible with the default systemd configuration in Ubuntu 20.04.</p>
+
+<!--more-->
+
+<p>There are multiple locations systemd user instance units can be located, there&#39;s more <a href="https://wiki.archlinux.org/index.php/systemd/User">here</a>, in this case we&#39;ll be using: </p>
+<div class="highlight"><pre><code class="language-text" data-lang="text"><span></span>~/.config/systemd/user/
+</code></pre></div>
+<p>In here we&#39;ll put a systemd unit file similar to the following:</p>
+<div class="highlight"><pre><code class="language-text" data-lang="text"><span></span>[Unit]
+Description=Puma HTTP Server for RAILS APP NAME (ENVIRONMENT)
+After=network.target
+
+[Service]
+Type=simple
+
+WorkingDirectory=/home/deploy/apps/APP_NAME/current
+ExecStart=/usr/local/rbenv/bin/rbenv exec bundle exec puma -C /home/deploy/apps/APP_NAME/shared/puma.rb
+ExecReload=/bin/kill -USR1 $MAINPID
+ExecStop=/bin/kill -TSTP $MAINPID
+StandardOutput=append:/home/deploy/apps/APP_NAME/shared/log/puma_access.log
+StandardError=append:/home/deploy/apps/APP_NAME/shared/log/puma_error.log
+
+Environment=RBENV_VERSION=3.0.0
+Environment=RBENV_ROOT=/usr/local/rbenv
+
+Restart=always
+RestartSec=1
+
+SyslogIdentifier=APP_NAME
+
+[Install]
+WantedBy=default.target
+</code></pre></div>
+<p>The <code>capistrano-puma</code> Gem can auto-generate this file and the <code>capistrano-cookbook</code> gem provides and overridden version of the template which fixes some rbenv compatibility issues and allows for zero downtime deploys (as well as also generating all other capistrano configuration automatically).</p>
+
+<p>You can see the most recent Capistrano Cookbooks unit file template - which may be useful as a reference - <a href="https://github.com/TalkingQuickly/capistrano-cookbook/blob/master/lib/generators/capistrano/reliably_deploying_rails/templates/puma.service.erb">here</a> which is a tweaked version of the version in <code>capistrano-puma</code>.</p>
+
+<p>Note a few things about this unit file:</p>
+
+<ul>
+<li>There is no <code>User</code> directive, user services will run as the user in question, including a <code>User</code> directive may lead to non-descriptive <code>service start request repeated too quickly, refusing to start</code> type errors</li>
+<li>Our Environment variables are not included in the <code>ExecStart</code> command, they&#39;re in separate <code>Environment</code> lines, <a href="http://www.talkingquickly.co.uk/capistrano-puma-neither-valid-executable-nor-absolute-path">this is explained here</a></li>
+<li><code>WantedBy</code> is set to <code>default.target</code> which is the correct value for user services if we want them to be started at boot</li>
+</ul>
+
+<p>In order for our service to be started at boot, we then need to enable this service with:</p>
+<div class="highlight"><pre><code class="language-text" data-lang="text"><span></span>systemctl --user enable UNIT_FILE_NAME
+</code></pre></div>
+<p>Note that this is different to starting the unit. We can start a unit immediately with <code>systemctl --user start UNIT_FILE_NAME</code> but this does not set the unit to be started on boot, so we must enable it as well. This is taken care of automatically if you&#39;re using the <code>deploy:setup_config</code> task from <code>capistrano-cookbook</code>.</p>
+
+<p>Our next challenge is that by default, user instance systemd services are only started when the user starts a session and will continue to run only while the user in question has an active session.</p>
+
+<p>To resolve this we must enable <a href="http://manpages.ubuntu.com/manpages/xenial/man1/loginctl.1.html">lingering</a>, lingering ensures that a manager for the user in question in spawned on boot so that the user can manage long run services.</p>
+
+<p>We can enable lingering with:</p>
+<div class="highlight"><pre><code class="language-text" data-lang="text"><span></span>loginctl enable-linger USERNAME
+</code></pre></div>
+<p>Where USERNAME is the capistrano deployment user. This is taken care of automatically if you&#39;re using the <code>deploy:setup_config</code> task from <code>capistrano-cookbook</code>.</p>
+
+<p>Finally we may want to monitor our systemd service with Monit. While there is crossover between systemd and monit, both will monitor that a process is running and start it if not.</p>
+
+<p>Monit however adds some additional capabilities on top of systemd, it can allow for significantly more complex checks such as making sure that our service is responding on a given port and even check the contents of certain healthcheck responses and issuing restarts if these aren&#39;t matched.</p>
+
+<p>Monit however runs as root and we need it to control a systemd user service.</p>
+
+<p>We may initially think we can use something like:</p>
+<div class="highlight"><pre><code class="language-text" data-lang="text"><span></span>start program = &quot;/usr/bin/systemctl --user start SYSTEMD_SERVICE_UNIT_FILE&quot; as uid &quot;deploy&quot; and gid &quot;deploy&quot;
+</code></pre></div>
+<p>As our start program where <code>deploy</code> is our Capistrano user. We might expect this to be equivalent to running <code>systemctl --user start</code> as the deploy user in a shell. While the command will be run as that user, due to some missing environment variables, we&#39;re likely to get an error along the lines of:</p>
+<div class="highlight"><pre><code class="language-text" data-lang="text"><span></span>Failed to get D-bus connection: no such file or directory
+</code></pre></div>
+<p>This is due to <code>XDG_RUNTIME_DIR</code> <a href="https://serverfault.com/questions/936985/cannot-use-systemctl-user-due-to-failed-to-get-d-bus-connection-permission">not being set correctly</a> when users are switched in this way. The same issue can happen if we try and use <code>su</code> in Capistrano to change users before executing a <code>systemctl --user</code> command.</p>
+
+<p>We can resolve is by modifying our start command to set this environment variable manually. So a simple monit definition might look like this:</p>
+<div class="highlight"><pre><code class="language-text" data-lang="text"><span></span>check process APP_NAME
+  with pidfile &quot;/home/deploy/apps/APP_NAME/shared/tmp/pids/puma.pid&quot;
+  start program = &quot;/bin/bash -c &#39;XDG_RUNTIME_DIR=/run/user/$(id -u) /usr/bin/systemctl start --user SYSTEMD_SERVICE_UNIT_FILE&#39;&quot; as uid &quot;deploy&quot; and gid &quot;deploy&quot;
+  stop program = &quot;/bin/bash -c &#39;XDG_RUNTIME_DIR=/run/user/$(id -u) /usr/bin/systemctl stop --user SYSTEMD_SERVICE_UNIT_FILE&#39;&quot; as uid &quot;deploy&quot; and gid &quot;deploy&quot;
+</code></pre></div>
+<p>You can see the most recent version of <code>capistrano cookbooks</code> monit definition <a href="https://github.com/TalkingQuickly/capistrano-cookbook/blob/master/lib/generators/capistrano/reliably_deploying_rails/templates/puma_monit.conf.erb">here</a> which may be useful as a reference.</p>
+
+<p>With all of this completed, we should now have puma being managed by a systemd service, which will auto start at boot, and is monitored with monit.</p>
+
+        </section>
+
+        
+
+        <footer class="post-footer">
+          
+            <!-- If we want to display author's name and bio -->
+
+    <section class="author">
+      <header> <a href="/about.html"> <img class="profile"
+          src="/assets/images/profile4.jpg" alt="Ben Dixon. Without
+      Aviators."></a></header>
+      <article>
+        <!-- Author Name -->
+          <h4> Ben Dixon </h4>
+          <!-- Author Bio -->
+          <p>
+            I'm a developer (Elixir, Ruby, Typescript), CTO, lover of good coffee and above all, making things. Huge devops geek, especially Kubernetes, Docker and Ansible. Regular Railsconf speaker and travel addict. Co-founded <a href="https://www.catapult.com?utm_source=benblogbio" target="_blank">Catapult</a> and wrote Reliably Deploying Rails Applications. Chat to me on twitter <a href= "http://www.twitter.com/talkingquickly" target="_blank">@talkingquickly</a>
+          </p>
+        </article>
+    </section>
+
+
+          
+          
+          
+
+
+            
+
+        </footer>
+
+    </article>
+
+</main>
+
+
+    <footer class="site-footer">
+        <a class="subscribe icon-feed" href="/rss.xml"><span class="tooltip">Subscribe!</span></a>
+        <div class="inner">
+          <section class="copyright">All content copyright <a href="/about.html">Ben Dixon</a> &copy; &bull; All rights reserved. Twitter: <a href="http://www.twitter.com/talkingquickly" target="_blank">@talkingquickly</a></section>
+             <section class="poweredby">Made with Jekyll and based on the <a href="http://github.com/rosario/kasper" target="_blank">Kasper theme</a></section>
+        </div>
+    </footer>
+
+
+    <script type="text/javascript" src="/assets/js/jquery-1.10.2.min.js"></script>
+    <script type="text/javascript" src="/assets/js/jquery.fitvids.js"></script>
+    <script type="text/javascript" src="/assets/js/index.js"></script>
+
+    <!-- Google Analytics Tracking code -->
+    <script type="text/javascript">
+
+      var _gaq = _gaq || [];
+      _gaq.push(['_setAccount', 'UA-7333902-35']);
+      _gaq.push(['_trackPageview']);
+
+      (function() {
+        var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+        ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+        var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+      })();
+
+    </script>
+</body>
+</html>
