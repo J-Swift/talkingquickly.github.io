@@ -3,7 +3,7 @@
 <generator uri="http://jekyllrb.com" version="3.7.2">Jekyll</generator>
 <link href="https://www.talkingquickly.co.uk/rss.xml" rel="self" type="application/atom+xml" />
 <link href="https://www.talkingquickly.co.uk/" rel="alternate" type="text/html" />
-<updated>2021-04-06T07:56:16+00:00</updated>
+<updated>2021-04-06T07:57:05+00:00</updated>
 <id>https://www.talkingquickly.co.uk/</id>
 <title>talkingquickly</title>
 <subtitle>kubernetes, rails, stress free deployment and small steps taken quickly</subtitle>
@@ -41,13 +41,13 @@
 
 &lt;p&gt;We can check that our DNS entry has been created correctly using &lt;code&gt;dig myapp.example.com&lt;/code&gt;. Replacing &lt;code&gt;myapp.example.com&lt;/code&gt; with your domain.&lt;/p&gt;
 
-&lt;p&gt;If you don&amp;#39;t have a domain yet, you can still follow this tutorial, but it won&amp;#39;t be possible to obtain an SSL certificate. In this scenario simply add the following line to your local hosts file &lt;code&gt;/etc/hosts&lt;/code&gt;:&lt;/p&gt;
+&lt;p&gt;If we don&amp;#39;t have a domain yet, we can still follow this tutorial, but it won&amp;#39;t be possible to obtain an SSL certificate. In this scenario we simply add the following line to our local hosts file &lt;code&gt;/etc/hosts&lt;/code&gt;:&lt;/p&gt;
 &lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;SERVER_IP LOCALHOSTNAME
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;So, for example:&lt;/p&gt;
 &lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;203.0.113.1 myapp.local
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;p&gt;This will allow you to access the app over http (but not https) on &lt;code&gt;myapp.local&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;This will allow us to access the app over http (but not https) on &lt;code&gt;myapp.local&lt;/code&gt;.&lt;/p&gt;
 
 &lt;h2&gt;Adding Gems&lt;/h2&gt;
 
