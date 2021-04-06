@@ -3,13 +3,508 @@
 <generator uri="http://jekyllrb.com" version="3.7.2">Jekyll</generator>
 <link href="https://www.talkingquickly.co.uk/rss.xml" rel="self" type="application/atom+xml" />
 <link href="https://www.talkingquickly.co.uk/" rel="alternate" type="text/html" />
-<updated>2021-04-02T07:00:32+00:00</updated>
+<updated>2021-04-06T03:26:54+00:00</updated>
 <id>https://www.talkingquickly.co.uk/</id>
 <title>talkingquickly</title>
 <subtitle>kubernetes, rails, stress free deployment and small steps taken quickly</subtitle>
 <author>
 <name>Ben Dixon</name>
 </author>
+<entry>
+<title>Deploying Rails to a VPS with Capistrano V3</title>
+<link href="https://www.talkingquickly.co.uk/deploying-rails-to-a-vps-with-capistrano-v3-and-systemd" rel="alternate" type="text/html" title="Deploying Rails to a VPS with Capistrano V3" />
+<published>2021-04-04T15:40:00+00:00</published>
+<updated>2021-04-04T15:40:00+00:00</updated>
+<id>https://www.talkingquickly.co.uk/deploying-rails-vps-capistrano</id>
+<content type="html" xml:base="https://www.talkingquickly.co.uk/deploying-rails-to-a-vps-with-capistrano-v3-and-systemd">&lt;p&gt;Deploying Rails to a VPS with Capistrano remains one of the simplest and most reliable methods for getting a Rails app up-and running. With the likes of Hetzner Cloud, Digital Ocean and Linode providing inexpensive, reliable virtual machines, Rails app serving substantial amounts of traffic can be hosted with minimal cost and complexity.&lt;/p&gt;
+
+&lt;p&gt;In the previous post we used Chef to prepare an Ubuntu 20.04 server for deployment of our Rails application. This included installing Nginx, PostgreSQL, Redis and our Ruby version of choice. We used Chef for this rather than entering command manually so that we can trivially create additional identical servers in future without needing to remember lots of terminal commands and config file edits.&lt;/p&gt;
+
+&lt;p&gt;In this tutorial we&amp;#39;ll use Capistrano to automate deployment of our application, including generating all required config files, obtaining a free SSL certificate with Lets Encrypt and enabling zero downtime deployment.&lt;/p&gt;
+
+&lt;!--more--&gt;
+
+&lt;p&gt;This tutorial is in two parts:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&quot;/setting-up-ubuntu-20-04-focal-fossa-vps-for-rails-app-deployment&quot;&gt;Setting up a VPS for Rails app Deployment&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;&lt;a href=&quot;/deploying-rails-to-a-vps-with-capistrano-and-systemd&quot;&gt;Deploying Rails to Ubuntu 20.04 with Capistrano&lt;/a&gt;&lt;/strong&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Note that this post is intended to be a tutorial rather than a reference, so the focus will be on the steps that need to be completed rather than exploring the why.&lt;/p&gt;
+
+&lt;h2&gt;Setting up DNS&lt;/h2&gt;
+
+&lt;p&gt;In order to obtain an SSL certificate for our application, we will need to have public DNS setup.&lt;/p&gt;
+
+&lt;p&gt;So if we want our application to be available on &lt;code&gt;https://myapp.example.com&lt;/code&gt; then we would need to own the domain &lt;code&gt;example.com&lt;/code&gt; and be able to create DNS records for it.&lt;/p&gt;
+
+&lt;p&gt;Assuming our server had the IP address &lt;code&gt;203.0.113.1&lt;/code&gt; we should now create an &amp;quot;A&amp;quot; record for &lt;code&gt;myapp.example.com&lt;/code&gt; with content &lt;code&gt;203.0.113.1&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;We can check that our DNS entry has been created correctly using &lt;code&gt;dig myapp.example.com&lt;/code&gt;. Replacing &lt;code&gt;myapp.example.com&lt;/code&gt; with your domain.&lt;/p&gt;
+
+&lt;p&gt;If you don&amp;#39;t have a domain yet, you can still follow this tutorial, but it won&amp;#39;t be possible to obtain an SSL certificate. In this scenario simply add the following line to your local hosts file &lt;code&gt;/etc/hosts&lt;/code&gt;:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;SERVER_IP LOCALHOSTNAME
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;So, for example:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;203.0.113.1 myapp.local
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;This will allow you to access the app over http (but not https) on &lt;code&gt;myapp.local&lt;/code&gt;.&lt;/p&gt;
+
+&lt;h2&gt;Adding Gems&lt;/h2&gt;
+
+&lt;p&gt;We then add the following to our Gemfile:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;# The puma application server, we probably already have this
+gem &amp;#39;puma&amp;#39;, &amp;#39;~&amp;gt; 5.0&amp;#39;
+
+group :development do
+  # Including capistrano cookbook will automatically includes
+  # the correct version of capistrano and other plugins
+  gem &amp;#39;capistrano-cookbook&amp;#39;, require: false
+end
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;and run &lt;code&gt;bundle install&lt;/code&gt;.&lt;/p&gt;
+
+&lt;h2&gt;Generating Local Configuration&lt;/h2&gt;
+
+&lt;p&gt;Capistrano Cookbook is a convenience gem that provides some helper tasks and a Rails Generator for bootstrapping the typical configuration used when deploying a Rails application both with or without Sidekiq.&lt;/p&gt;
+
+&lt;p&gt;To generate configuration execute the following:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;bundle exec rails g capistrano:reliably_deploying_rails:bootstrap --sidekiq --production_hostname=&amp;#39;YOUR_HOSTNAME&amp;#39; --production_server_address=&amp;#39;SERVER_IP&amp;#39; --certbot_enable --certbot_email=&amp;#39;YOUR_EMAIL&amp;#39;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;Replacing:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;YOUR_HOSTNAME&lt;/code&gt; with the address our application will be accessible on. Note that if we are not creating a DNS entry and instead are creating an entry in our local hosts file then we &lt;strong&gt;must&lt;/strong&gt; remove the &lt;code&gt;--certbot_*&lt;/code&gt; flags&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;SERVER_IP&lt;/code&gt; with the IP address of the VPS you are deploying to. In single server configurations this could also be the same as &lt;code&gt;YOUR_PRODUCTION_HOSTNAME&lt;/code&gt; but that approach adds some fragility if, in the future, you decide to add additional frontend servers behind a load balancer to handle additional load.&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;YOUR_EMAIL&lt;/code&gt; with the email email address LetsEncrypt can send certificate expiry notifications to. These notifications are generally for information only as our configuration automatically renews certificates when the expire so you may want to add a suffix, e.g. &amp;quot;youremail+letsencrypt&amp;quot; to make it easy to filter these emails with automated rules.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;And optionally keeping or removing this flags:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;--sidekiq&lt;/code&gt; removing this flag if we are not using Sidekiq for background jobs. If this flag is present the generator will include the required logic and templates to have Sidekiq automatically deployed and restarted alongside the core Rails application&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;--certbot_enable&lt;/code&gt; and &lt;code&gt;--certbot_email&lt;/code&gt; we should remove these flags if we do not want to have a free SSL certificate for &lt;code&gt;YOUR_HOSTNAME&lt;/code&gt; generated. we&amp;#39;ll definitely want to remove these flags if we&amp;#39;re testing locally with something like vagrant or if you don&amp;#39;t yet have a domain with DNS setup, e.g. when using local hosts file to map domains to IP&amp;#39;s.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;This will generate the following files and folders:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;Capfile
+config
+  ├── deploy.rb
+  └── deploy
+      ├── production.rb
+      ├── staging.rb
+      └── templates
+          ├── nginx_conf.erb
+          ├── puma_monit.conf.erb
+          ├── puma.rb.erb
+          ├── puma.service.erb
+          ├── sidekiq_monit.erb
+          └── sidekiq.service.capistrano.erb
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;The files in &lt;code&gt;templates&lt;/code&gt; are primarily overrides for the default configuration files created by the excellent &lt;code&gt;capistrano-puma&lt;/code&gt; and &lt;code&gt;capistrano-sidekiq&lt;/code&gt; gems which addresses some &lt;a href=&quot;/capistrano-puma-neither-valid-executable-nor-absolute-path&quot;&gt;issues that can arise&lt;/a&gt; when using systemd and &lt;code&gt;capistrano-rbenv&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;It also generates Monit definitions which are compatible with systemd. While in some respects systemd and Monit serve similar functions - both can ensure that our application and background workers are always running and started at boot - Monit can provide a layer of additional verification, for example checking ports are accessible and HTTP response codes and taking actions if this changes, so we&amp;#39;ll generally require both for a robust configuration. &lt;/p&gt;
+
+&lt;h2&gt;Configuring Stages&lt;/h2&gt;
+
+&lt;p&gt;The file &lt;code&gt;deploy.rb&lt;/code&gt; contains our general deployment configuration, and looks something like this:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-ruby&quot; data-lang=&quot;ruby&quot;&gt;&lt;span&gt;&lt;/span&gt;&lt;span class=&quot;c1&quot;&gt;# config valid for current version and patch releases of Capistrano&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;lock&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;~&amp;gt; 3.16.0&amp;quot;&lt;/span&gt;
+
+&lt;span class=&quot;n&quot;&gt;set&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:application&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&amp;#39;rdra_rails6_example&amp;#39;&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;set&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:deploy_user&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&amp;#39;deploy&amp;#39;&lt;/span&gt;
+
+&lt;span class=&quot;c1&quot;&gt;# setup repo details&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;set&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:repo_url&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&amp;#39;git@github.com:TalkingQuickly/rdra_rails6_example.git&amp;#39;&lt;/span&gt;
+
+&lt;span class=&quot;c1&quot;&gt;# setup rbenv.&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;set&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:rbenv_type&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:system&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;set&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:rbenv_ruby&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&amp;#39;3.0.0&amp;#39;&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;set&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:rbenv_prefix&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;RBENV_ROOT=&lt;/span&gt;&lt;span class=&quot;si&quot;&gt;#{&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;fetch&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;:rbenv_path&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;si&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt; RBENV_VERSION=&lt;/span&gt;&lt;span class=&quot;si&quot;&gt;#{&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;fetch&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;:rbenv_ruby&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;si&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt; &lt;/span&gt;&lt;span class=&quot;si&quot;&gt;#{&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;fetch&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;:rbenv_path&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;si&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;/bin/rbenv exec&amp;quot;&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;set&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:rbenv_map_bins&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;sx&quot;&gt;%w{rake gem bundle ruby rails}&lt;/span&gt;
+
+&lt;span class=&quot;c1&quot;&gt;# setup certbot for SSL via letsencrypt&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;set&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:certbot_enable_ssl&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kp&quot;&gt;true&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;set&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:certbot_redirect_to_https&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kp&quot;&gt;true&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;set&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:certbot_email&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;ben@talkingquickly.co.uk&amp;quot;&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;set&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:certbot_use_acme_staging&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kp&quot;&gt;false&lt;/span&gt;
+
+&lt;span class=&quot;c1&quot;&gt;# setup puma to operate in clustered mode, required for zero downtime deploys&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;set&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:puma_preload_app&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kp&quot;&gt;false&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;set&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:puma_init_active_record&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kp&quot;&gt;true&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;set&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:puma_workers&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;3&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;set&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:puma_systemctl_user&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;fetch&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;:deploy_user&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;set&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:puma_enable_lingering&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kp&quot;&gt;true&lt;/span&gt;
+
+
+&lt;span class=&quot;n&quot;&gt;set&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:sidekiq_systemctl_user&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;fetch&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;:deploy_user&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;set&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:sidekiq_enable_lingering&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kp&quot;&gt;true&lt;/span&gt;
+
+
+&lt;span class=&quot;c1&quot;&gt;# how many old releases do we want to keep&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;set&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:keep_releases&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;5&lt;/span&gt;
+
+&lt;span class=&quot;c1&quot;&gt;# Directories that should be linked to the shared folder&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;append&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:linked_dirs&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&amp;#39;log&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&amp;#39;tmp/pids&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&amp;#39;tmp/cache&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&amp;#39;tmp/sockets&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&amp;#39;vendor/bundle&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&amp;#39;.bundle&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&amp;#39;public/system&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&amp;#39;public/uploads&amp;#39;&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;append&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:linked_files&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&amp;#39;config/database.yml&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&amp;#39;config/master.key&amp;#39;&lt;/span&gt;
+
+&lt;span class=&quot;c1&quot;&gt;# this:&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;# http://www.capistranorb.com/documentation/getting-started/flow/&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;# is worth reading for a quick overview of what tasks are called&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;# and when for `cap stage deploy`&lt;/span&gt;
+
+&lt;span class=&quot;n&quot;&gt;namespace&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:deploy&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;do&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;end&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;This is where we set configuration that is the same no matter whether we&amp;#39;re deploying to production, staging or any other environment.&lt;/p&gt;
+
+&lt;p&gt;&lt;code&gt;capistrano-cookbook&lt;/code&gt; will have attempted to infer the following values:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;application&lt;/code&gt; from the name of the Rails application&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;repo_url&lt;/code&gt; from the current folders git &lt;code&gt;origin&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;And the following values should be manually set according to our apps requirements:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;rbenv_ruby&lt;/code&gt; to the Ruby version the app requires&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;The two other files which contain deployment configuration are &lt;code&gt;production.rb&lt;/code&gt; and &lt;code&gt;staging.rb&lt;/code&gt;. These are known as stages in Capistrano.&lt;/p&gt;
+
+&lt;p&gt;When we run Capistrano commands we will do so in the form &lt;code&gt;cap STAGE_NAME COMMAND&lt;/code&gt;. So if we were to run &lt;code&gt;cap production COMMAND&lt;/code&gt; then the contents of &lt;code&gt;config/deploy/production.rb&lt;/code&gt; would be evaluated before executing &lt;code&gt;COMMAND&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;Our &lt;code&gt;production.rb&lt;/code&gt; by default looks something like this:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-ruby&quot; data-lang=&quot;ruby&quot;&gt;&lt;span&gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;set&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:stage&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:production&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;set&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:branch&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;master&amp;quot;&lt;/span&gt;
+
+&lt;span class=&quot;c1&quot;&gt;# This is used in the Nginx VirtualHost to specify which domains&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;# the app should appear on. If you don&amp;#39;t yet have DNS setup, you&amp;#39;ll&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;# need to create entries in your local Hosts file for testing.&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;set&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:nginx_server_name&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&amp;#39;rdr-rails6-example.staging.talkingquickly.co.uk&amp;#39;&lt;/span&gt;
+
+&lt;span class=&quot;c1&quot;&gt;# used in case we&amp;#39;re deploying multiple versions of the same&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;# app side by side. Also provides quick sanity checks when looking&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;# at filepaths&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;set&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:full_app_name&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;&lt;/span&gt;&lt;span class=&quot;si&quot;&gt;#{&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;fetch&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;:application&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;si&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;_&lt;/span&gt;&lt;span class=&quot;si&quot;&gt;#{&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;fetch&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;:stage&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;si&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&amp;quot;&lt;/span&gt;
+
+
+&lt;span class=&quot;c1&quot;&gt;# Name sidekiq systemd service after the app and stage name so that&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;# multiple apps and stages can co-exist on the same machine if needed&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;set&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:sidekiq_service_unit_name&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;sidekiq_&lt;/span&gt;&lt;span class=&quot;si&quot;&gt;#{&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;fetch&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;:full_app_name&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;si&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&amp;quot;&lt;/span&gt;
+
+
+&lt;span class=&quot;n&quot;&gt;server&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&amp;#39;65.21.54.211&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;user&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&amp;#39;deploy&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;roles&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;sx&quot;&gt;%w{web app db}&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;primary&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kp&quot;&gt;true&lt;/span&gt;
+
+&lt;span class=&quot;n&quot;&gt;set&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:deploy_to&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;/home/&lt;/span&gt;&lt;span class=&quot;si&quot;&gt;#{&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;fetch&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;:deploy_user&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;si&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;/apps/&lt;/span&gt;&lt;span class=&quot;si&quot;&gt;#{&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;fetch&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;ss&quot;&gt;:full_app_name&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;si&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&amp;quot;&lt;/span&gt;
+
+&lt;span class=&quot;c1&quot;&gt;# dont try and infer something as important as environment from&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;# stage name.&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;set&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:rails_env&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;ss&quot;&gt;:production&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;Where &lt;code&gt;nginx_server_name&lt;/code&gt; is set to our production server and the first argument being passed to &lt;code&gt;server&lt;/code&gt; is our production servers IP address.&lt;/p&gt;
+
+&lt;p&gt;The only value we may want to tweak is &lt;code&gt;:branch&lt;/code&gt; which defines which branch should be used to deploy to this server. So if we were following a &amp;quot;git flow&amp;quot; type model, we might set this to &lt;code&gt;master&lt;/code&gt; in &lt;code&gt;production.rb&lt;/code&gt; and &lt;code&gt;develop&lt;/code&gt; in &lt;code&gt;staging.rb&lt;/code&gt;.&lt;/p&gt;
+
+&lt;h2&gt;Generating Remote Configuration&lt;/h2&gt;
+
+&lt;p&gt;Now that we&amp;#39;ve confirmed all of our local configuration is correct, we can upload all of our one time configuration to the remote server.&lt;/p&gt;
+
+&lt;p&gt;This is accomplished with the &lt;a href=&quot;https://github.com/TalkingQuickly/capistrano-cookbook/blob/master/lib/capistrano/cookbook/tasks/setup_config.cap&quot;&gt;task&lt;/a&gt; &lt;code&gt;deploy:setup_config&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;This task is responsible for copying one time configuration to the remote server, specifically:&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;Systemd unit files&lt;/li&gt;
+&lt;li&gt;Monit definitions &lt;/li&gt;
+&lt;li&gt;The Rails master key&lt;/li&gt;
+&lt;li&gt;Log rotation definitions&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;As well as enabling the relevant systemd services, requesting the SSL certificate and having certbot update our nginx configuration file to reference it.&lt;/p&gt;
+
+&lt;p&gt;We can execute this task with:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;bundle exec cap production deploy:setup_config
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;h2&gt;Setting up our database&lt;/h2&gt;
+
+&lt;p&gt;The final step required before deploying our application for the first time is setting up our database.&lt;/p&gt;
+
+&lt;p&gt;If we are using Postgres, &lt;code&gt;capistrano-cookbook&lt;/code&gt; includes the &lt;a href=&quot;https://github.com/TalkingQuickly/capistrano-cookbook/blob/master/lib/capistrano/cookbook/tasks/create_database.cap&quot;&gt;task&lt;/a&gt; &lt;code&gt;database:create&lt;/code&gt; which will:&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;Create a &lt;code&gt;database.yml&lt;/code&gt; with a random password&lt;/li&gt;
+&lt;li&gt;Create the database using the master Postgres user&lt;/li&gt;
+&lt;li&gt;Create the user specified in &lt;code&gt;database.yml&lt;/code&gt; and grants them access to the database&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;So we can simply execute:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;bundle exec cap production database:create
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;And our database will be ready for use.&lt;/p&gt;
+
+&lt;h2&gt;Disabling Passwordless Sudo (optional)&lt;/h2&gt;
+
+&lt;p&gt;Our configuration commands require the ability for our deploy user to execute sudo commands without being prompted for a password.&lt;/p&gt;
+
+&lt;p&gt;Now that we have finished the initial configuration, this is not required as our deploy tasks are carefully designed to not require any root access (see &lt;a href=&quot;/managing-puma-with-systemd-user-instance-and-monit&quot;&gt;this post&lt;/a&gt; for more on working with userspace systemd).&lt;/p&gt;
+
+&lt;p&gt;We can therefore optionally return to our Chef repository from the &lt;a href=&quot;/setting-up-ubuntu-20-04-focal-fossa-vps-for-rails-app-deployment&quot;&gt;previous&lt;/a&gt; tutorial and use &lt;code&gt;knife node edit NODE_NAME&lt;/code&gt; to add the following under the &lt;code&gt;normal&lt;/code&gt; key:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-json&quot; data-lang=&quot;json&quot;&gt;&lt;span&gt;&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&amp;quot;authorization&amp;quot;&lt;/span&gt;&lt;span class=&quot;err&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;nt&quot;&gt;&amp;quot;sudo&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+      &lt;span class=&quot;nt&quot;&gt;&amp;quot;passwordless&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kc&quot;&gt;false&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;and then run:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;knife zero converge &amp;quot;NODE_NAME&amp;quot; --ssh-user PROVISIONING_USER
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;To update the node to not allow passwordless sudo.&lt;/p&gt;
+
+&lt;p&gt;This provides us with some level of additional security because if - through some exploit - an attacker gained the ability to execute arbitrary shell commands as our app user, they would not automatically be able to execute commands as root.&lt;/p&gt;
+
+&lt;h2&gt;Deploying our application&lt;/h2&gt;
+
+&lt;p&gt;We&amp;#39;re now ready to deploy our application. It&amp;#39;s important to note here that Capistrano uses SSH Keychain Forwarding to clone the repository specified in &lt;code&gt;config/deploy.rb&lt;/code&gt; at the branch specified in &lt;code&gt;config/deploy/STAGE_NAME.rb&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;This means that if we have local changes which we have not yet pushed to the repository we are deploying from, these changes will not be deployed.&lt;/p&gt;
+
+&lt;p&gt;Once we&amp;#39;ve ensured everything has been pushed, we can deploy with:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;bundle exec cap production deploy
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;Our configuration is setup to allow zero downtime deploys, so when we deploy future versions, our newly deployed code will be loaded in the background and then traffic seamlessly transferred over to this new version.&lt;/p&gt;
+
+&lt;h2&gt;Next&lt;/h2&gt;
+
+&lt;p&gt;If you&amp;#39;ve run into any issues, please feel free to ping me on Twitter where I&amp;#39;m &lt;a href=&quot;https://www.twitter.com/talkingquickly&quot;&gt;@talkingquickly&lt;/a&gt; or open an issue on the &lt;a href=&quot;https://github.com/TalkingQuickly/capistrano-cookbook&quot;&gt;capistrano cookbook repository&lt;/a&gt; and I&amp;#39;ll do my best to help.&lt;/p&gt;
+
+&lt;p&gt;There&amp;#39;s also an example Rails app available &lt;a href=&quot;https://github.com/TalkingQuickly/rdra_rails6_example&quot;&gt;here&lt;/a&gt; which shows this configuration in action.&lt;/p&gt;
+</content>
+<summary>Deploying Rails to a VPS with Capistrano remains one of the simplest and most reliable methods for getting a Rails app up-and running. With the likes of Hetzner Cloud, Digital Ocean and Linode providing inexpensive, reliable virtual machines, Rails app serving substantial amounts of traffic can be hosted with minimal cost and complexity.In the previous post we used Chef to prepare an Ubuntu 20.04 server for deployment of our Rails application. This included installing Nginx, PostgreSQL, Redis and our Ruby version of choice. We used Chef for this rather than entering command manually so that we can trivially create additional identical servers in future without needing to remember lots of terminal commands and config file edits.In this tutorial we&amp;#39;ll use Capistrano to automate deployment of our application, including generating all required config files, obtaining a free SSL certificate with Lets Encrypt and enabling zero downtime deployment.</summary>
+</entry>
+<entry>
+<title>Setting up Ubuntu 20.04 for Rails app Deployment</title>
+<link href="https://www.talkingquickly.co.uk/setting-up-ubuntu-20-04-focal-fossa-vps-for-rails-app-deployment" rel="alternate" type="text/html" title="Setting up Ubuntu 20.04 for Rails app Deployment" />
+<published>2021-04-04T15:40:00+00:00</published>
+<updated>2021-04-04T15:40:00+00:00</updated>
+<id>https://www.talkingquickly.co.uk/deploying-rails-vps-capistrano-systemd</id>
+<content type="html" xml:base="https://www.talkingquickly.co.uk/setting-up-ubuntu-20-04-focal-fossa-vps-for-rails-app-deployment">&lt;p&gt;Deploying Rails to a VPS with Capistrano remains one of the simplest and most reliable methods for getting a Rails app up-and running. With the likes of Hetzner Cloud, Digital Ocean and Linode providing inexpensive, reliable virtual machines, Rails app serving substantial amounts of traffic can be hosted with minimal cost and complexity.&lt;/p&gt;
+
+&lt;p&gt;We&amp;#39;ll first use Chef to provision a VPS including securing and hardening the server, installing the correct Ruby version(s) and setting up Postgres and Redis. We&amp;#39;ll then use Capistrano to deploy our Rails app, including appropriate systemd units to ensure our services are started automatically on boot .&lt;/p&gt;
+
+&lt;!--more--&gt;
+
+&lt;p&gt;This tutorial is in two parts:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;&lt;a href=&quot;/setting-up-ubuntu-20-04-focal-fossa-vps-for-rails-app-deployment&quot;&gt;Setting up a VPS for Rails app Deployment&lt;/a&gt;&lt;/strong&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;/deploying-rails-to-a-vps-with-capistrano-and-systemd&quot;&gt;Deploying Rails to Ubuntu 20.04 with Capistrano&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Note that this post is intended to be a tutorial rather than a reference, so the focus will be on the steps that need to be completed rather than exploring the why.&lt;/p&gt;
+
+&lt;h2&gt;The Stack&lt;/h2&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Ubuntu 20.04 Focal Fossa (Current &lt;a href=&quot;https://ubuntu.com/about/release-cycle&quot;&gt;LTS&lt;/a&gt;)&lt;/li&gt;
+&lt;li&gt;PostgreSQL 13 (Other versions selectable)&lt;/li&gt;
+&lt;li&gt;Ruby 3.0 (Other versions selectable)&lt;/li&gt;
+&lt;li&gt;Redis, Memcached (optional)&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h2&gt;Chef&lt;/h2&gt;
+
+&lt;p&gt;Rather than executing lots of commands by hand, we&amp;#39;ll use Chef to automate the setup of the server. This means that when we need to provision another, identical server, we need just one command rather than having to try and remember all the shell commands. Chef is similar to tools such as Puppet or Ansible with the advantage for our use case that it&amp;#39;s both written in and leverages for configuration, Ruby.&lt;/p&gt;
+
+&lt;h2&gt;Installing Chef&lt;/h2&gt;
+
+&lt;p&gt;On OSX we can Install Chef by executing the following in a terminal:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;curl https://packages.chef.io/files/stable/chef-workstation/21.2.303/mac_os_x/11.0/chef-workstation-21.2.303-1.x86_64.dmg --output /tmp/chef-workstation.dmg
+hdiutil attach /tmp/chef-workstation.dmg
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;Then visiting the newly mounted &amp;quot;Chef Workstation&amp;quot; volume in finder, double clicking on the &lt;code&gt;.pkg&lt;/code&gt; and following the installation prompts.&lt;/p&gt;
+
+&lt;p&gt;On Ubuntu / Debian based systems, Chef Workstation can be installed with:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;curl https://packages.chef.io/files/stable/chef-workstation/21.2.303/debian/10/chef-workstation_21.2.303-1_amd64.deb --output /tmp/chef-workstation.deb
+sudo dpkg -i /tmp/chef-workstation.deb
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;Alternatively the latest version can be downloaded from &lt;code&gt;https://downloads.chef.io/products/workstation&lt;/code&gt;, this tutorial has been tested with version &lt;code&gt;21.2.303&lt;/code&gt; but should be broadly compatible with &lt;code&gt;21.x&lt;/code&gt; releases.&lt;/p&gt;
+
+&lt;p&gt;Once this step is complete, executing &lt;code&gt;chef&lt;/code&gt; in a local terminal should give help output from Chef, rather than a command not found error.&lt;/p&gt;
+
+&lt;h2&gt; Installing Knife&lt;/h2&gt;
+
+&lt;p&gt;Knife is the CLI tool that we will use to interact with Chef, we can install it by executing:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;chef gem install knife-zero
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;Note this command should not be executed from within a folder with a &lt;code&gt;Gemfile&lt;/code&gt; as this may lead to hard to debug &lt;code&gt;bundler not found&lt;/code&gt; errors.&lt;/p&gt;
+
+&lt;h2&gt;Creating a VPS&lt;/h2&gt;
+
+&lt;p&gt;We should now head to our favourite VPS provider. My current preference is Hetzner Cloud with Digital Ocean and Linode in close second. &lt;/p&gt;
+
+&lt;p&gt;For a non-trivial Rails application we probably don&amp;#39;t want to go below 1GB of RAM, likewise since we&amp;#39;re going to be running both our application and database servers on a single machine, we probably want at least 2 cores. 3 Cores and 4GB RAM is generally a comfortable starting point which is equivalent to Hetzners CPX21.&lt;/p&gt;
+
+&lt;p&gt;We can now choose Ubuntu 20.04 as the system image, boot it up and make a note of the IP address.&lt;/p&gt;
+
+&lt;h2&gt;Setup key based SSH&lt;/h2&gt;
+
+&lt;p&gt;If we configured key based authentication as part of the VPS creation process, this step can be skipped.&lt;/p&gt;
+
+&lt;p&gt;If however when we execute &lt;code&gt;ssh USERNAME@SERVER_IP&lt;/code&gt; (where &lt;code&gt;USERNAME&lt;/code&gt; is the username our VPS provider gave us to use and &lt;code&gt;SERVER_IP&lt;/code&gt; is our servers IP address) we are required to enter a password then we need to setup key based auth.&lt;/p&gt;
+
+&lt;p&gt;Key based authentication allows us to authenticate using our local public / private key pair rather than a password. This is important because as part of the server hardening process, we will later disable password based authentication completely.&lt;/p&gt;
+
+&lt;p&gt;We can copy our public key to the server with:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;ssh-copy-id USERNAME@SERVER_IP
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;This will prompt us for our password one more time and then add our public key to the list of allowed keys in the remote servers &lt;code&gt;~/.ssh/authorized_keys&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;We should then be able to execute &lt;code&gt;ssh USERNAME@SERVER_IP&lt;/code&gt; to login to our remote server without being required to enter a password. Note if we&amp;#39;re still being required to enter the passphrase for our local SSH key, we can avoid this by executing &lt;code&gt;ssh-add&lt;/code&gt; to temporarily store credentials in the local ssh agent.&lt;/p&gt;
+
+&lt;h2&gt;Getting the sample code&lt;/h2&gt;
+
+&lt;p&gt;Next we need to clone the sample Chef &lt;a href=&quot;https://github.com/TalkingQuickly/rails-server-template&quot;&gt;repository&lt;/a&gt;:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;git clone git@github.com:TalkingQuickly/rails-server-template.git
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;And then enter the sample code folder with &lt;code&gt;cd rails-server-template&lt;/code&gt;&lt;/p&gt;
+
+&lt;h2&gt;Preparing the node&lt;/h2&gt;
+
+&lt;p&gt;We can now prepare the server (node in Chef terminology) for provisioning with the following command:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;knife zero bootstrap SERVER_IP --connection-user SSH_USER --node-name NODE_NAME
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;replacing &lt;code&gt;SERVER_IP&lt;/code&gt; with our servers IP address, &lt;code&gt;SSH_USER&lt;/code&gt; with the same username we used when setting up key based login above and &lt;code&gt;NODE_NAME&lt;/code&gt; with a friendly name for the node, e.g. &lt;code&gt;rails_app_server&lt;/code&gt;. &lt;/p&gt;
+
+&lt;p&gt;This will connect to the remote server, install Chef and generate the local file &lt;code&gt;nodes/NODE_NAME.json&lt;/code&gt;. This is the file where all details about the node and what should be installed on it will be stored.&lt;/p&gt;
+
+&lt;p&gt;If we&amp;#39;ve never connected to the node via SSH before, we may be asked to confirm the servers fingerprint by entering &lt;code&gt;Y&lt;/code&gt; and pressing enter.&lt;/p&gt;
+
+&lt;h2&gt;Configuring the Node&lt;/h2&gt;
+
+&lt;p&gt;The above step created a JSON file which stores information about the node in &lt;code&gt;nodes/NODE_NAME.json&lt;/code&gt; but we should not edit that file directly.&lt;/p&gt;
+
+&lt;p&gt;Instead we can use the following command to edit the node definition:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;knife node edit NODE_NAME
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;Replacing &lt;code&gt;NODE_NAME&lt;/code&gt; with the name used above. This will open a JSON file in the editor defined in &lt;code&gt;knife.rb&lt;/code&gt;, by default this will be &lt;code&gt;vim&lt;/code&gt;, but we can change it to any editor we want by updating the &lt;code&gt;knife[:editor]&lt;/code&gt; variable in &lt;code&gt;knife.rb&lt;/code&gt;, e.g. &lt;code&gt;code --wait&lt;/code&gt; for VSCode or &lt;code&gt;subl -n -w&lt;/code&gt; for sublime text.&lt;/p&gt;
+
+&lt;p&gt;We can then update our configuration &lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-json&quot; data-lang=&quot;json&quot;&gt;&lt;span&gt;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;nt&quot;&gt;&amp;quot;name&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;NODE_NAME&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+  &lt;span class=&quot;nt&quot;&gt;&amp;quot;chef_environment&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;_default&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+  &lt;span class=&quot;nt&quot;&gt;&amp;quot;normal&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;nt&quot;&gt;&amp;quot;postgresql&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+      &lt;span class=&quot;nt&quot;&gt;&amp;quot;version&amp;quot;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;POSTGRES_VERSION&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+      &lt;span class=&quot;nt&quot;&gt;&amp;quot;password&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;nt&quot;&gt;&amp;quot;postgres&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;SOME_RANDOM_PASSSWORD&amp;quot;&lt;/span&gt;
+      &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;},&lt;/span&gt;
+    &lt;span class=&quot;nt&quot;&gt;&amp;quot;rbenv&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+      &lt;span class=&quot;nt&quot;&gt;&amp;quot;rubies&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;
+        &lt;span class=&quot;s2&quot;&gt;&amp;quot;RUBY_VERSION&amp;quot;&lt;/span&gt;
+      &lt;span class=&quot;p&quot;&gt;],&lt;/span&gt;
+      &lt;span class=&quot;nt&quot;&gt;&amp;quot;global&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;RUBY_VERSION&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+      &lt;span class=&quot;nt&quot;&gt;&amp;quot;gems&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;nt&quot;&gt;&amp;quot;RUBY_VERSION&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;
+          &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+            &lt;span class=&quot;nt&quot;&gt;&amp;quot;name&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;bundler&amp;quot;&lt;/span&gt;
+          &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+        &lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;
+      &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;},&lt;/span&gt;
+    &lt;span class=&quot;nt&quot;&gt;&amp;quot;knife_zero&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+      &lt;span class=&quot;nt&quot;&gt;&amp;quot;host&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;SERVER_IP&amp;quot;&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;},&lt;/span&gt;
+    &lt;span class=&quot;nt&quot;&gt;&amp;quot;tags&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;
+
+    &lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;},&lt;/span&gt;
+  &lt;span class=&quot;nt&quot;&gt;&amp;quot;policy_name&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kc&quot;&gt;null&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+  &lt;span class=&quot;nt&quot;&gt;&amp;quot;policy_group&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;kc&quot;&gt;null&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+  &lt;span class=&quot;nt&quot;&gt;&amp;quot;run_list&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;
+    &lt;span class=&quot;s2&quot;&gt;&amp;quot;role[server]&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+    &lt;span class=&quot;s2&quot;&gt;&amp;quot;role[nginx-server]&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+    &lt;span class=&quot;s2&quot;&gt;&amp;quot;role[postgres-server]&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+    &lt;span class=&quot;s2&quot;&gt;&amp;quot;role[rails-app]&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+    &lt;span class=&quot;s2&quot;&gt;&amp;quot;role[redis-server]&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+    &lt;span class=&quot;s2&quot;&gt;&amp;quot;role[memcached-server]&amp;quot;&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;Replacing:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;NODE_NAME&lt;/code&gt; with the node name we&amp;#39;ve been using&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;SERVER_IP&lt;/code&gt; with the server ip address &lt;/li&gt;
+&lt;li&gt;&lt;code&gt;SOME_RANDOM_PASSWORD&lt;/code&gt; with the password we want to be set for the postgres master user&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;RUBY_VERSION&lt;/code&gt; in three places with the Ruby version we need for our Rails application&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;POSTGRES_VERSION&lt;/code&gt; with the Postgres version we want, if in doubt 13 is the current stable release and should work for most setups&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;We can then save and close the node definition.&lt;/p&gt;
+
+&lt;h2&gt;Setting up users&lt;/h2&gt;
+
+&lt;p&gt;Our final step is to create a non-root user which will later be used by Capistrano to deploy our application.&lt;/p&gt;
+
+&lt;p&gt;To do this we first generate a password for the user by executing the following locally:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;openssl passwd -1 &amp;quot;SOME_RANDOM_PASSWORD&amp;quot;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;And making a note of the output.&lt;/p&gt;
+
+&lt;p&gt;We then create a Chef data bag called &lt;code&gt;users&lt;/code&gt; with an entry &lt;code&gt;deploy&lt;/code&gt; using the following command:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;knife data_bag create users deploy
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;This will create the file &lt;code&gt;data_bags/users/deploy.json&lt;/code&gt; which we should then open and replace the contents with:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-json&quot; data-lang=&quot;json&quot;&gt;&lt;span&gt;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;nt&quot;&gt;&amp;quot;id&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;deploy&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+  &lt;span class=&quot;nt&quot;&gt;&amp;quot;password&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;ENCRYPTED_PASSWORD&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+  &lt;span class=&quot;nt&quot;&gt;&amp;quot;ssh_keys&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;
+    &lt;span class=&quot;s2&quot;&gt;&amp;quot;PUBLIC_KEY&amp;quot;&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;],&lt;/span&gt;
+  &lt;span class=&quot;nt&quot;&gt;&amp;quot;groups&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;
+    &lt;span class=&quot;s2&quot;&gt;&amp;quot;sysadmin&amp;quot;&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;],&lt;/span&gt;
+  &lt;span class=&quot;nt&quot;&gt;&amp;quot;shell&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&amp;quot;/bin/bash&amp;quot;&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;Replacing &lt;code&gt;ENCRYPTED_PASSWORD&lt;/code&gt; with the output of the &lt;code&gt;openssl&lt;/code&gt; command above and &lt;code&gt;PUBLIC_KEY&lt;/code&gt; with your public key, generally the contents of your local &lt;code&gt;~/.ssh/id_rsa.pub&lt;/code&gt;.&lt;/p&gt;
+
+&lt;h2&gt;Applying configuration to the node&lt;/h2&gt;
+
+&lt;p&gt;We&amp;#39;re now ready to apply our configuration to the node with the following command:&lt;/p&gt;
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;knife zero converge &amp;quot;name:NODE_NAME&amp;quot; --ssh-user `SSH_USER`.
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;Replacing &lt;code&gt;NODE_NAME&lt;/code&gt; with the name we used above and &lt;code&gt;SSH_USER&lt;/code&gt; with the user we setup key based authentication for (often &lt;code&gt;root&lt;/code&gt;).&lt;/p&gt;
+
+&lt;p&gt;The first time we run this, it will take a while as it has to install all of the servers components including compiling our Ruby version.&lt;/p&gt;
+
+&lt;p&gt;If we make changes to our configuration, for example by editing the node definition and overriding more values from roles, we simply run the above command again to have the changes applied.&lt;/p&gt;
+
+&lt;h2&gt;What we&amp;#39;ve set up&lt;/h2&gt;
+
+&lt;p&gt;We now have a hardened server, ready to deploy a Rails application for. We can create an unlimited number of identical servers simply by following the above process.&lt;/p&gt;
+
+&lt;p&gt;The &lt;a href=&quot;https://leanpub.com/deploying_rails_applications&quot;&gt;book&lt;/a&gt; provides more detail on exactly what&amp;#39;s going on behind the scenes and how to customise it but at a high level we have:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Installed a firewall which limits access to ports 22 (SSH), 80 (HTTP) and 443 (HTTPS)&lt;/li&gt;
+&lt;li&gt;Disabled password based SSH login and installed fail2ban to block suspicious logins&lt;/li&gt;
+&lt;li&gt;Enabled automatic OS and core package updates &lt;/li&gt;
+&lt;li&gt;Installed Nginx, Postgres, Redis and Memcached&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h2&gt;Next&lt;/h2&gt;
+
+&lt;p&gt;Assuming everything has gone well, we can now continue to &lt;a href=&quot;deploying-rails-to-a-vps-with-capistrano-and-systemd&quot;&gt;deploying our Rails application with Capistrano&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;If you&amp;#39;ve run into any issues, please feel free to ping me on Twitter where I&amp;#39;m &lt;a href=&quot;https://www.twitter.com/talkingquickly&quot;&gt;@talkingquickly&lt;/a&gt; or open an issue on the &lt;a href=&quot;https://github.com/TalkingQuickly/rails-server-template&quot;&gt;sample code repository&lt;/a&gt; and I&amp;#39;ll do my best to help.&lt;/p&gt;
+</content>
+<summary>Deploying Rails to a VPS with Capistrano remains one of the simplest and most reliable methods for getting a Rails app up-and running. With the likes of Hetzner Cloud, Digital Ocean and Linode providing inexpensive, reliable virtual machines, Rails app serving substantial amounts of traffic can be hosted with minimal cost and complexity.We&amp;#39;ll first use Chef to provision a VPS including securing and hardening the server, installing the correct Ruby version(s) and setting up Postgres and Redis. We&amp;#39;ll then use Capistrano to deploy our Rails app, including appropriate systemd units to ensure our services are started automatically on boot .</summary>
+</entry>
 <entry>
 <title>Managing puma with the systemd user instance and monit</title>
 <link href="https://www.talkingquickly.co.uk/managing-puma-with-systemd-user-instance-and-monit" rel="alternate" type="text/html" title="Managing puma with the systemd user instance and monit" />
@@ -939,261 +1434,5 @@ helm upgrade --install harbor-registry harbor/harbor --values=./harbor/values-ha
 &lt;p&gt;{% include kubernetes-sso/contents.html active=&amp;quot;harborregistry&amp;quot; %}&lt;/p&gt;
 </content>
 <summary>In this post we&amp;#39;ll install a feature rich but lightweight docker registry and integrate login and authorization with Keycloak users and groups. Harbor is an open source registry which can serve multiple types of cloud artifacts and secure them using fine grained access control. In this case we&amp;#39;ll be focussed on using harbor as a docker image registry and linking it&amp;#39;s authentication with Keycloak but it is also capable of serving multiple other types of artifact, including helm charts.This post is part of a series on single sign on for Kubernetes.</summary>
-</entry>
-<entry>
-<title>Docker Registry Authentication on Kubernetes with Keycloak</title>
-<link href="https://www.talkingquickly.co.uk/docker-registry-authentication-with-keycloak" rel="alternate" type="text/html" title="Docker Registry Authentication on Kubernetes with Keycloak" />
-<published>2021-02-18T15:40:00+00:00</published>
-<updated>2021-02-18T15:40:00+00:00</updated>
-<id>https://www.talkingquickly.co.uk/simple-docker-registry</id>
-<content type="html" xml:base="https://www.talkingquickly.co.uk/docker-registry-authentication-with-keycloak">&lt;p&gt;In this post we&amp;#39;ll cover how to use Keycloak to provide a simple authentication layer for a Docker registry. Simple meaning that in order to push and pull images to the registry, the user will first need to &lt;code&gt;docker login&lt;/code&gt; as any valid user in the provided Keycloak realm. Note that there is no additional access control, so all Keycloak users have the ability to perform any action on any image once authenticated. For more fine grained controls, see the section on &lt;a href=&quot;/harbor-docker-registry-on-kubernetes-authentication-with-keycloak&quot;&gt;using Harbour&lt;/a&gt;.&lt;/p&gt;
-
-&lt;p&gt;This post is part of a series on single sign on for Kubernetes.&lt;/p&gt;
-
-&lt;!--more--&gt;
-
-&lt;p&gt;{% include kubernetes-sso/contents.html active=&amp;quot;dockerregistry&amp;quot; %}&lt;/p&gt;
-
-&lt;p&gt;{% include kubernetes-sso/pre-reqs.html %}&lt;/p&gt;
-
-&lt;p&gt;This post assumes you&amp;#39;ve already completed the &amp;quot;Installing Keycloak&amp;quot; section.&lt;/p&gt;
-
-&lt;h2&gt;Configuring Keycloak&lt;/h2&gt;
-
-&lt;p&gt;When we configured Keycloak, we included the following in the helm values file:&lt;/p&gt;
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-yaml&quot; data-lang=&quot;yaml&quot;&gt;&lt;span&gt;&lt;/span&gt;&lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;args&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt;
-  &lt;span class=&quot;p p-Indicator&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;-Dkeycloak.profile.feature.docker=enabled&lt;/span&gt;
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;p&gt;Which enabled the optional support for the Docker registry.&lt;/p&gt;
-
-&lt;h2&gt;Setting up the Docker Registry in Keycloak&lt;/h2&gt;
-
-&lt;p&gt;Begin by creating a new client in Keycloak with client id &amp;quot;simple-docker-registry&amp;quot; using client protocol &lt;code&gt;docker-v2&lt;/code&gt;. On the following screen go to the installation tab, choose &amp;quot;Docker Compose YAML&amp;quot; and select the &amp;quot;Download&amp;quot; option. Note that we aren&amp;#39;t going to be using Docker Compose, but this provides a convenient method for downloading the certificate files we&amp;#39;ll need to create as Kubernetes secrets.&lt;/p&gt;
-
-&lt;h2&gt;Creating the certificate secrets&lt;/h2&gt;
-
-&lt;p&gt;Having downloaded the Docker Compose YAML zip file from Keycloak, extract it to a locally accessible folder and check that it contains a file &lt;code&gt;certs/localhost_trust_chain.pem&lt;/code&gt;. We can then create a Kubernetes secret containing the file with the following:&lt;/p&gt;
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;kubectl create secret generic docker-registry-auth-token-rootcertbundle --from-file YOUR_PATH_TO/certs/localhost_trust_chain.pem
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;p&gt;Replacing &lt;code&gt;YOUR_PATH_TO/certs/localhost_trust_chain.pem&lt;/code&gt; with the path to the downloaded file.&lt;/p&gt;
-
-&lt;p&gt;This will create a secret called &lt;code&gt;docker-registry-auth-token-rootcertbundle&lt;/code&gt; containing the certificate contents.&lt;/p&gt;
-
-&lt;h2&gt;Configuring the docker registry&lt;/h2&gt;
-
-&lt;p&gt;The documentation for the helm chart we&amp;#39;ll be using to install the Docker Registry is here: &lt;a href=&quot;https://github.com/twuni/docker-registry.helm&quot;&gt;https://github.com/twuni/docker-registry.helm&lt;/a&gt;. Our configuration file will look like this:&lt;/p&gt;
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-yaml&quot; data-lang=&quot;yaml&quot;&gt;&lt;span&gt;&lt;/span&gt;&lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;configData&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt;
-  &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;auth&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt;
-    &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;token&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt;
-      &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;realm&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;https://sso.ssotest.staging.talkingquickly.co.uk/auth/realms/master/protocol/docker-v2/auth&lt;/span&gt;
-      &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;service&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;simple-docker-registry&lt;/span&gt;
-      &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;issuer&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;https://sso.ssotest.staging.talkingquickly.co.uk/auth/realms/master&lt;/span&gt;
-      &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;rootcertbundle&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;/root-cert-bundle/localhost_trust_chain.pem&lt;/span&gt;
-&lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;ingress&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt;
-  &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;enabled&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;true&lt;/span&gt;
-  &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;annotations&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt;
-    &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;cert-manager.io/cluster-issuer&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;letsencrypt-production&lt;/span&gt;
-  &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;hosts&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt;
-    &lt;span class=&quot;p p-Indicator&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;registry-keycloak.ssotest.staging.talkingquickly.co.uk&lt;/span&gt;
-
-  &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;tls&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt;
-  &lt;span class=&quot;p p-Indicator&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;hosts&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt;
-    &lt;span class=&quot;p p-Indicator&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;registry-keycloak.ssotest.staging.talkingquickly.co.uk&lt;/span&gt;
-    &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;secretName&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;keycloak-registry-tls-secret&lt;/span&gt;
-
-&lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;extraVolumes&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt;
-  &lt;span class=&quot;p p-Indicator&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;docker-registry-auth-token-rootcertbundle&lt;/span&gt;
-    &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;secret&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt;
-      &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;secretName&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;docker-registry-auth-token-rootcertbundle&lt;/span&gt;
-
-&lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;extraVolumeMounts&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt;
-  &lt;span class=&quot;p p-Indicator&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;mountPath&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;/root-cert-bundle&lt;/span&gt;
-    &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;docker-registry-auth-token-rootcertbundle&lt;/span&gt;
-    &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;readOnly&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;true&lt;/span&gt;
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;p&gt;The &lt;code&gt;configData&lt;/code&gt; section at the top configures the Docker Registry to use token based auth from KeyCloak as per the &lt;a href=&quot;https://www.keycloak.org/docs/4.8/securing_apps/#docker-registry-configuration&quot;&gt;Keycloak Docs&lt;/a&gt;.&lt;/p&gt;
-
-&lt;p&gt;You&amp;#39;ll then need to update the ingress definitions to reflect the URL you wish to make your docker registry available on, so replacing &lt;code&gt;registry-keycloak.ssotest.staging.talkingquickly.co.uk&lt;/code&gt; with the subdomain you&amp;#39;ll be using.&lt;/p&gt;
-
-&lt;p&gt;Note that ingress annotation &lt;code&gt;nginx.ingress.kubernetes.io/proxy-body-size: &amp;quot;0&amp;quot;&lt;/code&gt; removes the default limit on the maximum body size NGINX will accept and avoids &lt;code&gt;413 Request Entity Too Large&lt;/code&gt; when pushing large images.&lt;/p&gt;
-
-&lt;p&gt;The &lt;code&gt;extraVolumes&lt;/code&gt; section creates a volume which will contain the files from the &lt;code&gt;docker-registry-auth-token-rootcertbundle&lt;/code&gt; secret we created. The &lt;code&gt;extraVolumeMounts&lt;/code&gt; section instructs Kubernetes to mount this volume at the &lt;code&gt;/root-cert-bundle&lt;/code&gt; path within the Docker registry container which matches the &lt;code&gt;rootcertbundle&lt;/code&gt; path that we specified in the &lt;code&gt;configData&lt;/code&gt; map at the start.&lt;/p&gt;
-
-&lt;h2&gt;Installing the Docker Registry&lt;/h2&gt;
-
-&lt;p&gt;We can then add the repository for the helm chart and install the Docker registry with:&lt;/p&gt;
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;helm repo add twuni https://helm.twun.io
-helm upgrade --install simple-docker-registry twuni/docker-registry --values ./docker-registry/values-docker-registry.yml
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;h2&gt;Testing the registry&lt;/h2&gt;
-
-&lt;p&gt;We&amp;#39;ll need to give certificates a small window to be generated via LetsEncrypt, we can check on the progress of the certificates with &lt;code&gt;kubectl get certificates&lt;/code&gt;. Once they are ready we can login to our registry with:&lt;/p&gt;
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;docker login registry-keycloak.ssotest.staging.talkingquickly.co.uk
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;p&gt;Replacing the URL with the ingress URL we configured. We can then enter the credentials of any Keycloak user in the realm we configured and we&amp;#39;ll see something like:&lt;/p&gt;
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;Username: someusername
-Password:
-WARNING! Your password will be stored unencrypted in /home/ben/.docker/config.json.
-Configure a credential helper to remove this warning. See
-https://docs.docker.com/engine/reference/commandline/login/#credentials-store
-
-Login Succeeded
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;p&gt;If we want to test that pushing images works we can do something like:&lt;/p&gt;
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;docker image tag SOME_IMAGE_REF registry-keycloak.ssotest.staging.talkingquickly.co.uk/SOME_NAME
-docker push registry-keycloak.ssotest.staging.talkingquickly.co.uk/SOME_NAME
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;p&gt;And see that the image is pushed correctly.&lt;/p&gt;
-
-&lt;p&gt;We can then test pulling with:&lt;/p&gt;
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;docker pull registry-keycloak.ssotest.staging.talkingquickly.co.uk/SOME_NAME
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;p&gt;We then test that authentication works by logging out with:&lt;/p&gt;
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;docker logout registry-keycloak.ssotest.staging.talkingquickly.co.uk
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;p&gt;And trying to pull the image again:&lt;/p&gt;
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;docker pull registry-keycloak.ssotest.staging.talkingquickly.co.uk/SOME_NAME
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;p&gt;Where we&amp;#39;ll receive a permission denied message.&lt;/p&gt;
-
-&lt;h2&gt;Use with Kubernetes&lt;/h2&gt;
-
-&lt;p&gt;In order to access images in the registry we&amp;#39;ll need to create appropriate image pull secrets as described &lt;a href=&quot;https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/&quot;&gt;here in the kubernetes documentation&lt;/a&gt;.&lt;/p&gt;
-
-&lt;h2&gt;Summary&lt;/h2&gt;
-
-&lt;p&gt;We now have a private Docker Registry which can only be accessed by users authenticated via Keycloak. For more advanced configurations, for example where only certain users should be able to access the registry or where more granular access control is required, see &lt;a href=&quot;/harbor-docker-registry-on-kubernetes-authentication-with-keycloak&quot;&gt;Harbour Docker Registry with Keycloak&lt;/a&gt;.&lt;/p&gt;
-
-&lt;p&gt;{% include kubernetes-sso/contents.html active=&amp;quot;dockerregistry&amp;quot; %}&lt;/p&gt;
-</content>
-<summary>In this post we&amp;#39;ll cover how to use Keycloak to provide a simple authentication layer for a Docker registry. Simple meaning that in order to push and pull images to the registry, the user will first need to docker login as any valid user in the provided Keycloak realm. Note that there is no additional access control, so all Keycloak users have the ability to perform any action on any image once authenticated. For more fine grained controls, see the section on using Harbour.This post is part of a series on single sign on for Kubernetes.</summary>
-</entry>
-<entry>
-<title>Gitea SSO with Keycloak, OpenLDAP and OpenID Connect</title>
-<link href="https://www.talkingquickly.co.uk/gitea-sso-with-keycloak-openldap-openid-connect" rel="alternate" type="text/html" title="Gitea SSO with Keycloak, OpenLDAP and OpenID Connect" />
-<published>2021-02-16T15:40:00+00:00</published>
-<updated>2021-02-16T15:40:00+00:00</updated>
-<id>https://www.talkingquickly.co.uk/gitea-sso-with-openldap-openidconnect</id>
-<content type="html" xml:base="https://www.talkingquickly.co.uk/gitea-sso-with-keycloak-openldap-openid-connect">&lt;p&gt;Gitea is a lightweight open source git service. As an aside, Gitea - especially when combined with Drone CI - is one of my favourite pieces of open source software!&lt;/p&gt;
-
-&lt;p&gt;It&amp;#39;s minimal footprint and easy to use interface make it perfect for running on clusters to facilitate git push deploys and CI.&lt;/p&gt;
-
-&lt;p&gt;Here we&amp;#39;ll configure OpenLDAP for centralised user management and single sign on. We&amp;#39;ll optionally configure OpenID Connect but with several caveats on its usage.&lt;/p&gt;
-
-&lt;p&gt;This post is part of a series on single sign on for Kubernetes.&lt;/p&gt;
-
-&lt;!--more--&gt;
-
-&lt;p&gt;{% include kubernetes-sso/contents.html active=&amp;quot;gitea&amp;quot; %}&lt;/p&gt;
-
-&lt;p&gt;{% include kubernetes-sso/pre-reqs.html %}&lt;/p&gt;
-
-&lt;p&gt;This post assumes you&amp;#39;ve completed the &amp;quot;Installing OpenLDAP&amp;quot;, &amp;quot;Installing Keycloak&amp;quot; and &amp;quot;Linking Keycloak and OpenLDAP&amp;quot; sections.&lt;/p&gt;
-
-&lt;h2&gt;Installing Gitea&lt;/h2&gt;
-
-&lt;p&gt;Since we&amp;#39;re primarily concerned with configuring Gitea to use LDAP for authentication, we&amp;#39;ll only cover setting up the web UI here.&lt;/p&gt;
-
-&lt;p&gt;Depending on your cluster configuration, you&amp;#39;ll want to customise &lt;code&gt;gitea/values-gitea.yml&lt;/code&gt; with an ingress address and whether or not SSL should be enabled:&lt;/p&gt;
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-yaml&quot; data-lang=&quot;yaml&quot;&gt;&lt;span&gt;&lt;/span&gt;&lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;gitea&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt;
-  &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;domain&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;gitea-keycloak.ssotest.staging.talkingquickly.co.uk&lt;/span&gt; 
-  &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;protocol&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;http&lt;/span&gt;
-  &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;installLock&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;false&amp;quot;&lt;/span&gt;
-
-&lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;ingress&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt;
-  &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;enabled&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;true&lt;/span&gt;
-  &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;annotations&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt;
-    &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;cert-manager.io/cluster-issuer&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;letsencrypt-staging&lt;/span&gt;
-  &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;hosts&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt;
-    &lt;span class=&quot;p p-Indicator&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;host&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;gitea-keycloak.ssotest.staging.talkingquickly.co.uk&lt;/span&gt;
-      &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;paths&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;p p-Indicator&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;#39;/&amp;#39;&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;]&lt;/span&gt;
-  &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;tls&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt;
-   &lt;span class=&quot;p p-Indicator&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;secretName&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;gitea-keycloak-https-secret&lt;/span&gt;
-     &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;hosts&lt;/span&gt;&lt;span class=&quot;p p-Indicator&quot;&gt;:&lt;/span&gt;
-       &lt;span class=&quot;p p-Indicator&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;l l-Scalar l-Scalar-Plain&quot;&gt;gitea-keycloak.ssotest.staging.talkingquickly.co.uk&lt;/span&gt;
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;p&gt;We can then install Gitea with:&lt;/p&gt;
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;helm3 upgrade --install gitea-keycloak ./charts/gitea --values ./gitea/values-gitea.yml
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;p&gt;Gitea should now be available on the chosen Ingress URL, in the example configuration above; &lt;code&gt;gitea-keycloak.ssotest.staging.talkingquickly.co.uk&lt;/code&gt;.&lt;/p&gt;
-
-&lt;p&gt;We can then use this command to create an initial user with the username &lt;code&gt;administrator&lt;/code&gt;, by executing the gitea CLI inside its pod. Remember to change &lt;code&gt;YOUR_PASSWORD&lt;/code&gt; and &lt;code&gt;YOUR_EMAIL&lt;/code&gt; to something:&lt;/p&gt;
-&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;kubectl exec -it --namespace identity \
-      $(kubectl get pods -n identity --selector=&amp;#39;app.kubernetes.io/instance=gitea&amp;#39; -o jsonpath=&amp;#39;{.items[0].metadata.name}&amp;#39;) \
-      -- gitea admin user create --username YOUR_EMAIL --password YOUR_PASSWORD --email YOUR_EMAIL --admin --access-token --must-change-password=false
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
-&lt;p&gt;We should then be able to login to our Gitea instance.&lt;/p&gt;
-
-&lt;h2&gt;Configuring Gitea to use LDAP&lt;/h2&gt;
-
-&lt;p&gt;While Gitea does support OIDC login, this is only for existing accounts, so it&amp;#39;s not suitable for centralised user management. So here we&amp;#39;ll be using LDAP.&lt;/p&gt;
-
-&lt;p&gt;&lt;a href=&quot;https://github.com/go-gitea/gitea/issues/1124?_pjax=%23js-repo-pjax-container#issuecomment-284911694&quot;&gt;This Github Issue&lt;/a&gt; on the Gitea repository explains the difference in behaviour between OIDC and LDAP.&lt;/p&gt;
-
-&lt;p&gt;Begin by logging into Gitea as the &lt;code&gt;administrator&lt;/code&gt; user and going to &amp;quot;Site Administration&amp;quot; and then then &amp;quot;Authentication Sources&amp;quot; tab. Choose &amp;quot;Add Authentication Source&amp;quot; and then select &amp;quot;LDAP (via BindDN)&amp;quot; as the source, select the following values:&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Authentication Name&lt;/strong&gt;: &lt;code&gt;OpenLDAP&lt;/code&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Security Protocol&lt;/strong&gt;: &lt;code&gt;Unencrypted&lt;/code&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Host&lt;/strong&gt;: &lt;code&gt;openldap.identity.svc.cluster.local&lt;/code&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Port&lt;/strong&gt;: &lt;code&gt;389&lt;/code&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Bind DN&lt;/strong&gt;: &lt;code&gt;cn=readonly,dc=k4stest4,dc=talkingquickly,dc=co,dc=uk&lt;/code&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Bind Password&lt;/strong&gt;: This should be the password you selected for the read only user in the &lt;code&gt;values-openldap.yml&lt;/code&gt; file&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;User Search Base&lt;/strong&gt;: &lt;code&gt;ou=People,dc=k4stest4,dc=talkingquickly,dc=co,dc=uk&lt;/code&gt; remembering to replace the &lt;code&gt;dc&lt;/code&gt; components with your own&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;User Filter&lt;/strong&gt;: &lt;code&gt;(&amp;amp;(objectClass=inetOrgPerson)(uid=%s))&lt;/code&gt; This will allow all users to log into Gitea, you could create a more complex filter that would only let users in certain groups (e.g. &amp;quot;Engineers&amp;quot;) &lt;a href=&quot;https://confluence.atlassian.com/kb/how-to-write-ldap-search-filters-792496933.html&quot;&gt;this article on search filters&lt;/a&gt; has some inspiration on how write these. &lt;code&gt;uid=%s&lt;/code&gt; matches on uid, so people will be able to login with their username, you could modify this filter to match on both email and username.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Username Attribute&lt;/strong&gt;: &lt;code&gt;uid&lt;/code&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;First Name Attribute&lt;/strong&gt;: &lt;code&gt;cn&lt;/code&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Surname attribute&lt;/strong&gt;: &lt;code&gt;sn&lt;/code&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Email Attribute&lt;/strong&gt;: &lt;code&gt;mail&lt;/code&gt;&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;p&gt;The &lt;a href=&quot;https://docs.gitea.io/en-us/authentication/&quot;&gt;Gitea LDAP documentation&lt;/a&gt; provides more detail on what each of these fields does.&lt;/p&gt;
-
-&lt;p&gt;Note that if we&amp;#39;re looking to configure gitea using a configuration management tool, we can use the same approach we used to create the admin user above, to create the LDAP configuration using the CLI as &lt;a href=&quot;https://docs.gitea.io/en-us/command-line/&quot;&gt;documented here&lt;/a&gt;&lt;/p&gt;
-
-&lt;p&gt;If we now go back to the Gitea sign in page, we&amp;#39;ll find that we can login directly with the credentials for the user we created in Keycloak. Importantly this should be a user we created in the master realm, not our administrative user.&lt;/p&gt;
-
-&lt;p&gt;There&amp;#39;s no re-direction, password authentication is performed behind the scenes. If we go to the security settings for the account, we&amp;#39;ll see that because this user is managed externally, the password cannot be changed from with Gitea, only from within Keycloak.&lt;/p&gt;
-
-&lt;h2&gt;Configuring Gitea to use OpenID Connect&lt;/h2&gt;
-
-&lt;p&gt;While OpenID connect cannot be used for &amp;quot;full&amp;quot; SSO in Gitea, e.g. the underlying users must already exist, it&amp;#39;s possible for users who have already logged in, to configure Keycloak OIDC as an additional login, so that they can go through the Keycloak flow rather than entering their keycloak username and password in Gitea.&lt;/p&gt;
-
-&lt;p&gt;The only real benefit of this approach is that where Keycloak is used extensively, the user may have an ongoing session there, so using that flow to login may be marginally more convenient than entering a username and password. So this option is included for completeness rather than as a typical user case. &lt;/p&gt;
-
-&lt;p&gt;In the Keycloak admin interface, go to &amp;quot;Clients&amp;quot; in the side menu and choose &amp;quot;Create&amp;quot;. Enter gitea for the &lt;code&gt;Client ID&lt;/code&gt; and choose &lt;code&gt;openid-connect&lt;/code&gt; for the &amp;quot;Client Protocol&amp;quot;. Then enter:&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Name&lt;/strong&gt;: Gitea&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Access Type&lt;/strong&gt;: &lt;code&gt;confidential&lt;/code&gt; (this is required to generate the client secret)&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Valid Redirect URI&amp;#39;s&lt;/strong&gt;: &lt;code&gt;https://GITEA_INGRESS_URL/*&lt;/code&gt; (so in the case of my example above, this would be &lt;code&gt;https://gitea-keycloak.k4stest4.talkingquickly.co.uk/*&lt;/code&gt;)&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;p&gt;Once we&amp;#39;ve saved, we can then find the client secret by going back to the &amp;quot;Credentials&amp;quot; tab.&lt;/p&gt;
-
-&lt;p&gt;In gitea go to &amp;quot;Site Administration&amp;quot; and choose &amp;quot;Authentication Sources&amp;quot;. Then choose &amp;quot;Add Authentication Source&amp;quot; and choose the following options:&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Authentication Type&lt;/strong&gt;: &lt;code&gt;OAuth2&lt;/code&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Authentication Name&lt;/strong&gt;: &lt;code&gt;Keycloak&lt;/code&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;OAuth2 Provider&lt;/strong&gt;: &lt;code&gt;OpenID Connect&lt;/code&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Client ID&lt;/strong&gt;: &lt;code&gt;gitea&lt;/code&gt; (the value entered for id when creating the client)&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Client Secret&lt;/strong&gt;: &lt;code&gt;YOUR_SECRET&lt;/code&gt; the secret displayed on the credentials tab of the Keycloak Client page for the &lt;code&gt;gitea&lt;/code&gt; client we created&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;OpenID Connect Auto Discovery URL&lt;/strong&gt;: &lt;code&gt;https://YOUR_KEYCLOAK_INGRESS_URL/auth/realms/master/.well-known/openid-configuration&lt;/code&gt; replacing &lt;code&gt;YOUR_KEYCLOAK_INGRESS_URL&lt;/code&gt; with the Ingress domain chosen for keycloak. &lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;p&gt;It&amp;#39;s important to note that Gitea will validate the certificate on creation of the provider and will not work without a valid SSL cert.&lt;/p&gt;
-
-&lt;p&gt;Before we try and login, we&amp;#39;ll need to set a password for the user we created in KeyCloak. We can do this by going to the User in Keycloak, choosing the &amp;quot;Credentials&amp;quot; tab and setting a password, if we leave the &amp;quot;Temporary&amp;quot; switch on that page set to 1, then when the user signs in, they&amp;#39;ll be asked to set a new password.&lt;/p&gt;
-
-&lt;p&gt;We can then go to the sign in page in Gitea and click on the &amp;quot;Sign in with OpenID Connect&amp;quot; option (we&amp;#39;ll need to sign out if we&amp;#39;re currently signed in as the administrator user). This will re-direct us the Keycloak login page where we can login with the user we created earlier in Keycloak. &lt;/p&gt;
-
-&lt;p&gt;Once we&amp;#39;ve signed in with our Keycloak credentials, we&amp;#39;ll be re-directed back to Gitea.&lt;/p&gt;
-
-&lt;p&gt;Here we&amp;#39;re asked to enter credentials for an existing user and can enter our keycloak users username and password so that in future we can login using the Keycloak auth flow.&lt;/p&gt;
-
-&lt;p&gt;{% include kubernetes-sso/contents.html active=&amp;quot;gitea&amp;quot; %}&lt;/p&gt;
-</content>
-<summary>Gitea is a lightweight open source git service. As an aside, Gitea - especially when combined with Drone CI - is one of my favourite pieces of open source software!It&amp;#39;s minimal footprint and easy to use interface make it perfect for running on clusters to facilitate git push deploys and CI.Here we&amp;#39;ll configure OpenLDAP for centralised user management and single sign on. We&amp;#39;ll optionally configure OpenID Connect but with several caveats on its usage.This post is part of a series on single sign on for Kubernetes.</summary>
 </entry>
 </feed>

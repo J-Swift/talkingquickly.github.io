@@ -49,12 +49,45 @@
             <li><a href="/kubernetes-sso-a-detailed-guide">Kubernetes SSO - A detailed Guide</a></li>
             <li><a href="/getting-things-done-while-staying-sane">Getting things done while staying sane</a></li>
             <li><a href="/2017/11/startup-reading-list/">Startup Reading List</a></li>
+            <li><a href="/deploying-rails-to-a-vps-with-capistrano-and-systemd">Deploying Rails with Capistrano</a></li>
             </ul>
         </div>
     </div>
 </header>
 
 <main class="content" role="main">
+
+    
+
+    <article class="post">
+        <header class="post-header">
+            <span class="post-meta"><time datetime="15 Jan 2021">15 Jan 2021</time></span>
+            <h2 class="post-title"><a href="/kubernetes-sso-links">Useful Links when Setting up SSO on Kubernetes</a></h2>
+
+        </header>
+        <section class="post-excerpt">
+            <p><p>While creating the comprehensive guide to Kubernetes SSO, I leant heavily on many great pieces of existing content, a lot of them are included here.</p>
+</p>
+        </section>
+    </article>
+
+    
+
+    <article class="post">
+        <header class="post-header">
+            <span class="post-meta"><time datetime="08 Jan 2021">08 Jan 2021</time></span>
+            <h2 class="post-title"><a href="/2021/01/debian-dev-environment-for-remote-vscode/">Automated remote Debian development environment for VSCode with Ansible</a></h2>
+
+        </header>
+        <section class="post-excerpt">
+            <p><p>One of the things VSCode has done extremely well is creating a seamless remote development experience. Using the remote extension pack, specifically the SSH development extension, it&#39;s possible to run VSCode locally, while performing all actions on a remote server completely seamlessly. This allows us to use a local VM for much faster docker development on macOS. It also means we are free to spin up powerful Cloud VM&#39;s with many cores and plenty of RAM when we&#39;re working on more intensive tasks.</p>
+
+<p>With this setup I seamlessly switch between fully local development using a Virtualbox VM and a 16 core cloud VM with 64GB of RAM when I need more horsepower. In both environments this provides the level of Docker performance I associate with developing directly on Linux machines.</p>
+
+<p>This is streamlined using an Ansible playbook which automatically sets up Debian VM&#39;s with sensible defaults for development, including a beautiful default ZSH configuration (inc auto-completions) and easy language version management with asdf. This post starts with the practical steps required for this setup, and then goes on to explain what&#39;s being installed and how it works.</p>
+</p>
+        </section>
+    </article>
 
     
 
@@ -240,34 +273,6 @@
         </header>
         <section class="post-excerpt">
             <p><p>Having tried the Oculus I&#39;d prepared myself to be completely unimpressed by Google&#39;s $2 VR solution. But after trying Roller Coaster VR I was blown away by how well the slightly shabby looking cardboard assembly performed. Naturally despite never have tried any game development or 3D modeling, I wanted to make stuff for it. Using Unity and some plugins, this turned out to be surprisingly easy. This tutorial covers the bare minimum needed to go from never having used Unity before, to a simple 3D environment you can look around using Google Cardboard.</p>
-</p>
-        </section>
-    </article>
-
-    
-
-    <article class="post">
-        <header class="post-header">
-            <span class="post-meta"><time datetime="09 Aug 2014">09 Aug 2014</time></span>
-            <h2 class="post-title"><a href="/2014/08/auto-generate-vagrant-machines-from-chef-node-definitions/">Automatically Generate Vagrant Machines from Chef Node Definitions</a></h2>
-
-        </header>
-        <section class="post-excerpt">
-            <p><p>If you use chef-solo to provision your production servers, Vagrant makes it easy to set up a production- like environment on a local VM for testing purposes. It can however seem like wasted time to have to manually replicate the contents of your node definition in your <code>Vagrantfile</code> and more importantly it&#39;s easy to make a change to either the <code>Vagrantfile</code> or the node definition and forget to update the other to match. In this post I&#39;ll look at a simple method of automatically generating Vagrant machines based on node definitions.</p>
-</p>
-        </section>
-    </article>
-
-    
-
-    <article class="post">
-        <header class="post-header">
-            <span class="post-meta"><time datetime="03 Jun 2014">03 Jun 2014</time></span>
-            <h2 class="post-title"><a href="/2014/06/rails-development-environment-with-vagrant-and-docker/">A Rails Development Environment with Docker and Vagrant</a></h2>
-
-        </header>
-        <section class="post-excerpt">
-            <p><p>Onboarding new developers to a Rails projects is still a far harder task than it should be. A big part of this is that setting up a development environment for an app or suite of apps, getting the correct ruby versions, database versions etc running locally, can in many cases take upwards of a day. A combination of Vagrant and Docker can make this a thing of the past.</p>
 </p>
         </section>
     </article>

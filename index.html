@@ -49,12 +49,47 @@
             <li><a href="/kubernetes-sso-a-detailed-guide">Kubernetes SSO - A detailed Guide</a></li>
             <li><a href="/getting-things-done-while-staying-sane">Getting things done while staying sane</a></li>
             <li><a href="/2017/11/startup-reading-list/">Startup Reading List</a></li>
+            <li><a href="/deploying-rails-to-a-vps-with-capistrano-and-systemd">Deploying Rails with Capistrano</a></li>
             </ul>
         </div>
     </div>
 </header>
 
 <main class="content" role="main">
+
+    
+
+    <article class="post">
+        <header class="post-header">
+            <span class="post-meta"><time datetime="04 Apr 2021">04 Apr 2021</time></span>
+            <h2 class="post-title"><a href="/deploying-rails-to-a-vps-with-capistrano-v3-and-systemd">Deploying Rails to a VPS with Capistrano V3</a></h2>
+
+        </header>
+        <section class="post-excerpt">
+            <p><p>Deploying Rails to a VPS with Capistrano remains one of the simplest and most reliable methods for getting a Rails app up-and running. With the likes of Hetzner Cloud, Digital Ocean and Linode providing inexpensive, reliable virtual machines, Rails app serving substantial amounts of traffic can be hosted with minimal cost and complexity.</p>
+
+<p>In the previous post we used Chef to prepare an Ubuntu 20.04 server for deployment of our Rails application. This included installing Nginx, PostgreSQL, Redis and our Ruby version of choice. We used Chef for this rather than entering command manually so that we can trivially create additional identical servers in future without needing to remember lots of terminal commands and config file edits.</p>
+
+<p>In this tutorial we&#39;ll use Capistrano to automate deployment of our application, including generating all required config files, obtaining a free SSL certificate with Lets Encrypt and enabling zero downtime deployment.</p>
+</p>
+        </section>
+    </article>
+
+    
+
+    <article class="post">
+        <header class="post-header">
+            <span class="post-meta"><time datetime="04 Apr 2021">04 Apr 2021</time></span>
+            <h2 class="post-title"><a href="/setting-up-ubuntu-20-04-focal-fossa-vps-for-rails-app-deployment">Setting up Ubuntu 20.04 for Rails app Deployment</a></h2>
+
+        </header>
+        <section class="post-excerpt">
+            <p><p>Deploying Rails to a VPS with Capistrano remains one of the simplest and most reliable methods for getting a Rails app up-and running. With the likes of Hetzner Cloud, Digital Ocean and Linode providing inexpensive, reliable virtual machines, Rails app serving substantial amounts of traffic can be hosted with minimal cost and complexity.</p>
+
+<p>We&#39;ll first use Chef to provision a VPS including securing and hardening the server, installing the correct Ruby version(s) and setting up Postgres and Redis. We&#39;ll then use Capistrano to deploy our Rails app, including appropriate systemd units to ensure our services are started automatically on boot .</p>
+</p>
+        </section>
+    </article>
 
     
 
@@ -431,38 +466,6 @@ WantedBy=&lt;%=(fetch(:puma_systemctl_user) == :system) ? &quot;multi-user.targe
             <p><p>Keycloak is a widely used open source identity and access management system. Think Okta but open source. This is where users will actually enter their username and password for services and where we&#39;ll configure which users can login to which applications. It will also provide users with a single directory of applications they can login to.</p>
 
 <p>In this post - as part of the larger series on Kubernetes SSO - we cover how to install Keycloak on Kubernetes.</p>
-</p>
-        </section>
-    </article>
-
-    
-
-    <article class="post">
-        <header class="post-header">
-            <span class="post-meta"><time datetime="15 Jan 2021">15 Jan 2021</time></span>
-            <h2 class="post-title"><a href="/kubernetes-sso-links">Useful Links when Setting up SSO on Kubernetes</a></h2>
-
-        </header>
-        <section class="post-excerpt">
-            <p><p>While creating the comprehensive guide to Kubernetes SSO, I leant heavily on many great pieces of existing content, a lot of them are included here.</p>
-</p>
-        </section>
-    </article>
-
-    
-
-    <article class="post">
-        <header class="post-header">
-            <span class="post-meta"><time datetime="08 Jan 2021">08 Jan 2021</time></span>
-            <h2 class="post-title"><a href="/2021/01/debian-dev-environment-for-remote-vscode/">Automated remote Debian development environment for VSCode with Ansible</a></h2>
-
-        </header>
-        <section class="post-excerpt">
-            <p><p>One of the things VSCode has done extremely well is creating a seamless remote development experience. Using the remote extension pack, specifically the SSH development extension, it&#39;s possible to run VSCode locally, while performing all actions on a remote server completely seamlessly. This allows us to use a local VM for much faster docker development on macOS. It also means we are free to spin up powerful Cloud VM&#39;s with many cores and plenty of RAM when we&#39;re working on more intensive tasks.</p>
-
-<p>With this setup I seamlessly switch between fully local development using a Virtualbox VM and a 16 core cloud VM with 64GB of RAM when I need more horsepower. In both environments this provides the level of Docker performance I associate with developing directly on Linux machines.</p>
-
-<p>This is streamlined using an Ansible playbook which automatically sets up Debian VM&#39;s with sensible defaults for development, including a beautiful default ZSH configuration (inc auto-completions) and easy language version management with asdf. This post starts with the practical steps required for this setup, and then goes on to explain what&#39;s being installed and how it works.</p>
 </p>
         </section>
     </article>

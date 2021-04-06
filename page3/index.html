@@ -49,12 +49,41 @@
             <li><a href="/kubernetes-sso-a-detailed-guide">Kubernetes SSO - A detailed Guide</a></li>
             <li><a href="/getting-things-done-while-staying-sane">Getting things done while staying sane</a></li>
             <li><a href="/2017/11/startup-reading-list/">Startup Reading List</a></li>
+            <li><a href="/deploying-rails-to-a-vps-with-capistrano-and-systemd">Deploying Rails with Capistrano</a></li>
             </ul>
         </div>
     </div>
 </header>
 
 <main class="content" role="main">
+
+    
+
+    <article class="post">
+        <header class="post-header">
+            <span class="post-meta"><time datetime="09 Aug 2014">09 Aug 2014</time></span>
+            <h2 class="post-title"><a href="/2014/08/auto-generate-vagrant-machines-from-chef-node-definitions/">Automatically Generate Vagrant Machines from Chef Node Definitions</a></h2>
+
+        </header>
+        <section class="post-excerpt">
+            <p><p>If you use chef-solo to provision your production servers, Vagrant makes it easy to set up a production- like environment on a local VM for testing purposes. It can however seem like wasted time to have to manually replicate the contents of your node definition in your <code>Vagrantfile</code> and more importantly it&#39;s easy to make a change to either the <code>Vagrantfile</code> or the node definition and forget to update the other to match. In this post I&#39;ll look at a simple method of automatically generating Vagrant machines based on node definitions.</p>
+</p>
+        </section>
+    </article>
+
+    
+
+    <article class="post">
+        <header class="post-header">
+            <span class="post-meta"><time datetime="03 Jun 2014">03 Jun 2014</time></span>
+            <h2 class="post-title"><a href="/2014/06/rails-development-environment-with-vagrant-and-docker/">A Rails Development Environment with Docker and Vagrant</a></h2>
+
+        </header>
+        <section class="post-excerpt">
+            <p><p>Onboarding new developers to a Rails projects is still a far harder task than it should be. A big part of this is that setting up a development environment for an app or suite of apps, getting the correct ruby versions, database versions etc running locally, can in many cases take upwards of a day. A combination of Vagrant and Docker can make this a thing of the past.</p>
+</p>
+        </section>
+    </article>
 
     
 
@@ -181,6 +210,8 @@ machine(s). In this post I&#39;ll cover how to do this with Capistrano 3.</p>
         </header>
         <section class="post-excerpt">
             <p><p>This is a brief overview of how to use chef to automate the provisioning of a server for a Ruby on Rails application. Sample code is provided as a starting point at <a href="https://github.com/TalkingQuickly/rails-server-template">https://github.com/TalkingQuickly/rails-server-template</a></p>
+
+<p><strong>2021 Update</strong>: a revised version of this tutorial is <a href="/setting-up-ubuntu-20-04-focal-fossa-vps-for-rails-app-deployment">available here</a></p>
 </p>
         </section>
     </article>
