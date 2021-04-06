@@ -3,7 +3,7 @@
 <generator uri="http://jekyllrb.com" version="3.7.2">Jekyll</generator>
 <link href="https://www.talkingquickly.co.uk/rss.xml" rel="self" type="application/atom+xml" />
 <link href="https://www.talkingquickly.co.uk/" rel="alternate" type="text/html" />
-<updated>2021-04-06T03:40:39+00:00</updated>
+<updated>2021-04-06T07:45:21+00:00</updated>
 <id>https://www.talkingquickly.co.uk/</id>
 <title>talkingquickly</title>
 <subtitle>kubernetes, rails, stress free deployment and small steps taken quickly</subtitle>
@@ -18,8 +18,6 @@
 <id>https://www.talkingquickly.co.uk/deploying-rails-vps-capistrano</id>
 <content type="html" xml:base="https://www.talkingquickly.co.uk/deploying-rails-to-a-vps-with-capistrano-v3-and-systemd">&lt;p&gt;Deploying Rails to a VPS with Capistrano remains one of the simplest and most reliable methods for getting a Rails app up-and running. With the likes of Hetzner Cloud, Digital Ocean and Linode providing inexpensive, reliable virtual machines, Rails app serving substantial amounts of traffic can be hosted with minimal cost and complexity.&lt;/p&gt;
 
-&lt;p&gt;In the previous post we used Chef to prepare an Ubuntu 20.04 server for deployment of our Rails application. This included installing Nginx, PostgreSQL, Redis and our Ruby version of choice. We used Chef for this rather than entering command manually so that we can trivially create additional identical servers in future without needing to remember lots of terminal commands and config file edits.&lt;/p&gt;
-
 &lt;p&gt;In this tutorial we&amp;#39;ll use Capistrano to automate deployment of our application, including generating all required config files, obtaining a free SSL certificate with Lets Encrypt and enabling zero downtime deployment.&lt;/p&gt;
 
 &lt;!--more--&gt;
@@ -30,6 +28,8 @@
 &lt;li&gt;&lt;a href=&quot;/setting-up-ubuntu-20-04-focal-fossa-vps-for-rails-app-deployment&quot;&gt;Setting up a VPS for Rails app Deployment&lt;/a&gt;&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;&lt;a href=&quot;/deploying-rails-to-a-vps-with-capistrano-v3-and-systemd&quot;&gt;Deploying Rails to Ubuntu 20.04 with Capistrano&lt;/a&gt;&lt;/strong&gt;&lt;/li&gt;
 &lt;/ul&gt;
+
+&lt;p&gt;In the previous post we used Chef to prepare an Ubuntu 20.04 server for deployment of our Rails application. This included installing Nginx, PostgreSQL, Redis and our Ruby version of choice. We used Chef for this rather than entering command manually so that we can trivially create additional identical servers in future without needing to remember lots of terminal commands and config file edits.&lt;/p&gt;
 
 &lt;p&gt;Note that this post is intended to be a tutorial rather than a reference, so the focus will be on the steps that need to be completed rather than exploring the why.&lt;/p&gt;
 
@@ -284,7 +284,7 @@ config
 
 &lt;p&gt;There&amp;#39;s also an example Rails app available &lt;a href=&quot;https://github.com/TalkingQuickly/rdra_rails6_example&quot;&gt;here&lt;/a&gt; which shows this configuration in action.&lt;/p&gt;
 </content>
-<summary>Deploying Rails to a VPS with Capistrano remains one of the simplest and most reliable methods for getting a Rails app up-and running. With the likes of Hetzner Cloud, Digital Ocean and Linode providing inexpensive, reliable virtual machines, Rails app serving substantial amounts of traffic can be hosted with minimal cost and complexity.In the previous post we used Chef to prepare an Ubuntu 20.04 server for deployment of our Rails application. This included installing Nginx, PostgreSQL, Redis and our Ruby version of choice. We used Chef for this rather than entering command manually so that we can trivially create additional identical servers in future without needing to remember lots of terminal commands and config file edits.In this tutorial we&amp;#39;ll use Capistrano to automate deployment of our application, including generating all required config files, obtaining a free SSL certificate with Lets Encrypt and enabling zero downtime deployment.</summary>
+<summary>Deploying Rails to a VPS with Capistrano remains one of the simplest and most reliable methods for getting a Rails app up-and running. With the likes of Hetzner Cloud, Digital Ocean and Linode providing inexpensive, reliable virtual machines, Rails app serving substantial amounts of traffic can be hosted with minimal cost and complexity.In this tutorial we&amp;#39;ll use Capistrano to automate deployment of our application, including generating all required config files, obtaining a free SSL certificate with Lets Encrypt and enabling zero downtime deployment.</summary>
 </entry>
 <entry>
 <title>Setting up Ubuntu 20.04 for Rails app Deployment</title>
