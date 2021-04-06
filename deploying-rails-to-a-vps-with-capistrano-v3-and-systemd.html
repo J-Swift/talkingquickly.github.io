@@ -274,6 +274,8 @@ config
 </code></pre></div>
 <p>And our database will be ready for use.</p>
 
+<p>If we wish to setup our database manually, we will need to create the appropriate database and user, then create a suitable <code>database.yml</code> file on our remote server in <code>/home/deploy/apps/FULL_APP_NAME/shared/config</code> replacing <code>FULL_APP_NAME</code> with the value that will be generated for <code>:full_app_name</code> in our <code>production.rb</code>. This is typically <code>APP_NAME_STAGE</code> e.g. <code>my_rails_app_production</code>.</p>
+
 <h2>Disabling Passwordless Sudo (optional)</h2>
 
 <p>Our configuration commands require the ability for our deploy user to execute sudo commands without being prompted for a password.</p>

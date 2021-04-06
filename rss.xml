@@ -3,7 +3,7 @@
 <generator uri="http://jekyllrb.com" version="3.7.2">Jekyll</generator>
 <link href="https://www.talkingquickly.co.uk/rss.xml" rel="self" type="application/atom+xml" />
 <link href="https://www.talkingquickly.co.uk/" rel="alternate" type="text/html" />
-<updated>2021-04-06T03:32:46+00:00</updated>
+<updated>2021-04-06T03:37:39+00:00</updated>
 <id>https://www.talkingquickly.co.uk/</id>
 <title>talkingquickly</title>
 <subtitle>kubernetes, rails, stress free deployment and small steps taken quickly</subtitle>
@@ -244,6 +244,8 @@ config
 &lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;&lt;/span&gt;bundle exec cap production database:create
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;p&gt;And our database will be ready for use.&lt;/p&gt;
+
+&lt;p&gt;If we wish to setup our database manually, we will need to create the appropriate database and user, then create a suitable &lt;code&gt;database.yml&lt;/code&gt; file on our remote server in &lt;code&gt;/home/deploy/apps/FULL_APP_NAME/shared/config&lt;/code&gt; replacing &lt;code&gt;FULL_APP_NAME&lt;/code&gt; with the value that will be generated for &lt;code&gt;:full_app_name&lt;/code&gt; in our &lt;code&gt;production.rb&lt;/code&gt;. This is typically &lt;code&gt;APP_NAME_STAGE&lt;/code&gt; e.g. &lt;code&gt;my_rails_app_production&lt;/code&gt;.&lt;/p&gt;
 
 &lt;h2&gt;Disabling Passwordless Sudo (optional)&lt;/h2&gt;
 
