@@ -3,7 +3,7 @@
 <generator uri="http://jekyllrb.com" version="3.7.2">Jekyll</generator>
 <link href="https://www.talkingquickly.co.uk/rss.xml" rel="self" type="application/atom+xml" />
 <link href="https://www.talkingquickly.co.uk/" rel="alternate" type="text/html" />
-<updated>2021-04-06T03:37:39+00:00</updated>
+<updated>2021-04-06T03:40:39+00:00</updated>
 <id>https://www.talkingquickly.co.uk/</id>
 <title>talkingquickly</title>
 <subtitle>kubernetes, rails, stress free deployment and small steps taken quickly</subtitle>
@@ -28,7 +28,7 @@
 
 &lt;ul&gt;
 &lt;li&gt;&lt;a href=&quot;/setting-up-ubuntu-20-04-focal-fossa-vps-for-rails-app-deployment&quot;&gt;Setting up a VPS for Rails app Deployment&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;&lt;a href=&quot;/deploying-rails-to-a-vps-with-capistrano-and-systemd&quot;&gt;Deploying Rails to Ubuntu 20.04 with Capistrano&lt;/a&gt;&lt;/strong&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;&lt;a href=&quot;/deploying-rails-to-a-vps-with-capistrano-v3-and-systemd&quot;&gt;Deploying Rails to Ubuntu 20.04 with Capistrano&lt;/a&gt;&lt;/strong&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
 &lt;p&gt;Note that this post is intended to be a tutorial rather than a reference, so the focus will be on the steps that need to be completed rather than exploring the why.&lt;/p&gt;
@@ -302,7 +302,7 @@ config
 
 &lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;&lt;a href=&quot;/setting-up-ubuntu-20-04-focal-fossa-vps-for-rails-app-deployment&quot;&gt;Setting up a VPS for Rails app Deployment&lt;/a&gt;&lt;/strong&gt;&lt;/li&gt;
-&lt;li&gt;&lt;a href=&quot;/deploying-rails-to-a-vps-with-capistrano-and-systemd&quot;&gt;Deploying Rails to Ubuntu 20.04 with Capistrano&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;/deploying-rails-to-a-vps-with-capistrano-v3-and-systemd&quot;&gt;Deploying Rails to Ubuntu 20.04 with Capistrano&lt;/a&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
 &lt;p&gt;Note that this post is intended to be a tutorial rather than a reference, so the focus will be on the steps that need to be completed rather than exploring the why.&lt;/p&gt;
